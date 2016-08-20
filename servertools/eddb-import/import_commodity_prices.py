@@ -55,4 +55,4 @@ c.execute("DROP TABLE IF EXISTS commoditypriceOld")
 c.execute("RENAME TABLE commodityprice TO commoditypriceOld, commoditypriceTemp TO commodityprice")
 
 t2 = timeit.default_timer()
-print (t2-t1)
+print ("Import took", t2-t1, "seconds")
