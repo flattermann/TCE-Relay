@@ -42,6 +42,8 @@ import argparse
 import sys
 import os
 
+tceRelayVersion = "0.1"
+
 parser = argparse.ArgumentParser(description='TCE-Relay Client for Elite Dangerous')
 
 parser.add_argument('--from-tce', dest='fromTce', action='store_const',
@@ -177,7 +179,7 @@ def getJsonRequest():
 
 	jsonData = {}
 	jsonData["apiVersion"] = 1
-	jsonData["clientVersion"] = "0.1"
+	jsonData["clientVersion"] = tceRelayVersion
 	jsonData["knownMarkets"] = []
 	jsonData["maxAge"] = maxAge
 
