@@ -1,1 +1,3 @@
 server/config.py
+servertools/eddb-import/config.py
+servertools/eddb-import/*.csv
