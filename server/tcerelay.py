@@ -1,5 +1,5 @@
 from flask import Flask
-from markets import markets
+#from markets import markets
 from prices import prices
 import logging
 
