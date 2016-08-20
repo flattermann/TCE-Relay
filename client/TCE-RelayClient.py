@@ -72,9 +72,6 @@ def getMyPath(filename=None):
 	else:
 		return os.path.join(datadir, filename)
 
-# myPath=getMyPath()	
-# print("MyPath", myPath)
-
 tceRelayUrl='http://tcerelay.flat09.de/prices'
 
 # These are global
@@ -83,13 +80,11 @@ commodities = json.load(open('c:/temp/commodities.json'))
 # These too
 connUserMarkets = sqlite3.connect(tcePath+"/db/TCE_RMarkets.db")
 connPrices = sqlite3.connect(tcePath+"/db/TCE_Prices.db")
-#connDefaultMarkets = sqlite3.connect(tcePath+"/db/TCE_UMarkets.db")
 connResources = sqlite3.connect(tcePath+"/db/Resources.db")
 connTceRelayClient = sqlite3.connect(getMyPath("TCE-RelayClient.db"))
 
 connUserMarkets.row_factory = sqlite3.Row
 connPrices.row_factory = sqlite3.Row
-#connDefaultMarkets.row_factory = sqlite3.Row
 connResources.row_factory = sqlite3.Row
 connTceRelayClient.row_factory = sqlite3.Row
 
