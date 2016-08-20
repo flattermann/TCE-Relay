@@ -2,6 +2,22 @@
 # 
 # Import EDDB prices to TCE
 # 
+# Copyright (C) flattermann
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
 # Note: when using --from-tce, we will output messages in the following format for easier parsing:
 #
 # Message					TCE should show
@@ -11,17 +27,9 @@
 #								text
 # ERROR:text				Error message:
 #								text
-#							Error message MUST be shown in TCE.
-#							They CAN be joined into one big message.
-# WARNING:text				Warning message:
-#								text
-#							Error message SHOULD be shown in TCE.
-#							They CAN be joined into one big message.
-# INFO:text					Info message:
-#								text
-#							Info messages CAN be ignored by TCE
-#							They CAN be joined into one big message.
+#
 # All other messages should be ignored
+
 import math
 import json
 import csv
@@ -34,10 +42,6 @@ import argparse
 import sys
 import os
 
-#maxAge=30
-#tcePath="C:/TCE"
-#fromTce=False
-
 parser = argparse.ArgumentParser(description='TCE-Relay Client for Elite Dangerous')
 
 parser.add_argument('--from-tce', dest='fromTce', action='store_const',
@@ -45,10 +49,9 @@ parser.add_argument('--from-tce', dest='fromTce', action='store_const',
 parser.add_argument('--max-age', dest='maxAge', type=int, action='store',
 					default=14, help='Max age for the prices in days (defaults to 14)')
 parser.add_argument('--tce-path', dest='tcePath', action='store',
-					default="c:/TCE", help='Path to TCE using slashes as separator (defaults to c:/TCE)')
+					default="c:/TCE", help='Path to TCE (defaults to c:/TCE)')
 					
 args = parser.parse_args()
-#print(args)
 
 maxAge = args.maxAge
 tcePath = args.tcePath
@@ -232,7 +235,6 @@ def sendRequest(jsonData):
 	if not fromTce:
 		print ("Compressed JsonRequest from", len(jsonAsString), "to", len(compressedJson), "bytes")
 	r = requests.post(tceRelayUrl, data=compressedJson, headers=additional_headers)
-	#r = requests.post('http://tce-eddb.flat09.de/prices', data=json.dumps(jsonData))
 
 	if not fromTce:
 		print(r.status_code)
@@ -274,7 +276,6 @@ def processJsonResponse(jsonResponse):
 	else:
 		#text="Updated "+strcountStationsUpdated+" stations with "+countPricesUpdated+"prices"
 		#showStatus(text)
-		#print ("INFO:"+)
 		showStatus("Finished")
 	
 # Update one market
