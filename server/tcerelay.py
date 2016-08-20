@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.config['DEBUG'] = True
 app.debug = True
 
-app.register_blueprint(markets)
+#app.register_blueprint(markets)
 app.register_blueprint(prices)
 
 app.logger_name = "flask.app"
