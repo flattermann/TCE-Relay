@@ -9,7 +9,7 @@ import time
 import config
 
 prices = Blueprint('prices', __name__)
-db = MySQLDatabase(config.mysql.db, user=config.mysql.user, passwd=config.mysql.passwd)
+db = MySQLDatabase(config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
 
 class CommodityPrice(peewee.Model):
     id = PrimaryKeyField()

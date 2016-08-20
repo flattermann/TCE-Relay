@@ -1,2 +1,2 @@
 # rename to config.py and enter your credentials
-mysql = {db='tcerelay', user='tcerelay', pw='supersecret'}
+mysql = {"db":'tcerelay', "user":'tcerelay', "pw":'supersecret'}
