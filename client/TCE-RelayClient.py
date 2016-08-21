@@ -80,17 +80,40 @@ tceRelayUrl='http://tcerelay.flat09.de/prices'
 connUserMarkets = sqlite3.connect(tcePath+"/db/TCE_RMarkets.db")
 connPrices = sqlite3.connect(tcePath+"/db/TCE_Prices.db")
 connTceRelayClient = sqlite3.connect(getMyPath("TCE-RelayClient.db"))
+connTceRelayClientLocal = sqlite3.connect(getMyPath("TCE-RelayClient_local.db"))
 
 connUserMarkets.row_factory = sqlite3.Row
 connPrices.row_factory = sqlite3.Row
 connTceRelayClient.row_factory = sqlite3.Row
+connTceRelayClientLocal.row_factory = sqlite3.Row
 
+connTceRelayClientLocal.cursor().execute('CREATE TABLE IF NOT EXISTS stringStore (key TEXT, value TEXT, PRIMARY KEY(key))')
 # These too, our caches
 localMarketIdCache = {}
 stationIdCache = {}
 
-# TODO save in local DB to make persistent
-guid=str(uuid.uuid4())
+def getLocalDbString(key):
+    global connTceRelayClientLocal
+    c = connTceRelayClientLocal.cursor()
+    c.execute("SELECT value from stringStore where key=?", (key,))
+    value = c.fetchone()
+    if value != None:
+        return value["value"]
+    else:
+        return None
+
+def setLocalDbString(key, value):
+    global connTceRelayClientLocal
+    c = connTceRelayClientLocal.cursor()
+    c.execute("REPLACE into stringStore (key, value) VALUES (?, ?)", (key, value))
+    connTceRelayClientLocal.commit()
+    
+def getGuid():
+    guid = getLocalDbString("guid")
+    if guid == None:
+        guid=str(uuid.uuid4())
+        setLocalDbString("guid", guid)
+    return guid
     
 def showProgress(curProgress, maxProgress, text="Progress"):
     print ("PROGRESS:"+str(curProgress)+","+str(maxProgress)+","+text)
@@ -139,7 +162,7 @@ def getJsonRequest():
     jsonData["clientVersion"] = tceRelayVersion
     jsonData["knownMarkets"] = []
     jsonData["maxAge"] = maxAge
-    jsonData["guid"] = guid
+    jsonData["guid"] = getGuid()
     
     count = 0
     markets = cUM.fetchall()
