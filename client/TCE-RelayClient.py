@@ -236,7 +236,7 @@ def updateTcePriceData(stationId, curPriceData):
 	deletePricesForMarket(localMarketId)
 	count=0
 	for curPrice in curPriceData:
-		commodityId = curPrice["tgId"]
+		tradegoodId = curPrice["tgId"]
 		supply = curPrice["supply"]
 		buyPrice = curPrice["buyPrice"]
 		sellPrice = curPrice["sellPrice"]

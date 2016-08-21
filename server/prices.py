@@ -14,7 +14,7 @@ db = MySQLDatabase(config.mysql["db"], user=config.mysql["user"], passwd=config.
 class CommodityPrice(peewee.Model):
     id = PrimaryKeyField()
     stationId = peewee.IntegerField(index=True)
-    commodityId = peewee.IntegerField(index=True)
+    tradegoodId = peewee.IntegerField(index=True)
     supply = peewee.IntegerField(default=0)
     buyPrice = peewee.IntegerField(default=0)
     sellPrice = peewee.IntegerField(default=0)
@@ -24,7 +24,7 @@ class CommodityPrice(peewee.Model):
     class Meta:
         database = db
         indexed = (
-            (('stationId', 'commodityId'), True)
+            (('stationId', 'tradegoodId'), True)
         )
 
 @prices.before_request
@@ -68,7 +68,7 @@ def show():
                 if marketDate <= market["t"]:
                     break
             curStationPrices.append(
-                {"commodityId":price.commodityId, "supply":price.supply, "buyPrice":price.buyPrice, "sellPrice":price.sellPrice, "collectedAt":marketDate} 
+                {"tgId":price.tradegoodId, "supply":price.supply, "buyPrice":price.buyPrice, "sellPrice":price.sellPrice, "collectedAt":marketDate} 
             )
         if len(curStationPrices)>0:
             priceData[market["id"]]=curStationPrices
