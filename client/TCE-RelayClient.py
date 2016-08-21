@@ -74,23 +74,16 @@ def getMyPath(filename=None):
 
 tceRelayUrl='http://tcerelay.flat09.de/prices'
 
-# These are global
-commodities = json.load(open('c:/temp/commodities.json'))
-
 # These too
 connUserMarkets = sqlite3.connect(tcePath+"/db/TCE_RMarkets.db")
 connPrices = sqlite3.connect(tcePath+"/db/TCE_Prices.db")
-connResources = sqlite3.connect(tcePath+"/db/Resources.db")
 connTceRelayClient = sqlite3.connect(getMyPath("TCE-RelayClient.db"))
 
 connUserMarkets.row_factory = sqlite3.Row
 connPrices.row_factory = sqlite3.Row
-connResources.row_factory = sqlite3.Row
 connTceRelayClient.row_factory = sqlite3.Row
 
 # These too, our caches
-commodityIdToTceCache = {}
-commodityCache = {}
 localMarketIdCache = {}
 stationIdCache = {}
 	
@@ -100,46 +93,6 @@ def showProgress(curProgress, maxProgress, text="Progress"):
 def showStatus(text):
 	print ("STATUS:"+text)
 	
-def getCommodityById(commodityId):
-	global commodities
-	global commodityCache
-	if len(commodityCache) == 0:
-		t1 = timeit.default_timer()
-		for commodity in commodities:
-			commodityCache[commodity["id"]] = commodity
-		t2 = timeit.default_timer()
-		if not fromTce:
-			print ("Finished... Commodity caching took", (t2-t1), "Seconds")
-	return commodityCache[int(commodityId)]
-
-def getCommodityNameFromId(commodityId):
-	global commodities
-	commodity = getCommodityById(commodityId)
-	if commodity != None:
-		return commodity["name"]
-	return None
-
-def getTceTradegoodId(commodityName):
-	global connResources
-	c = connResources.cursor()
-	c.execute("SELECT id from public_Goods WHERE Tradegood LIKE ?", (commodityName, ))
-	result = c.fetchone()
-	if (result != None):
-		return result["id"]
-	else:
-		return -1
-
-def translateCommodityIdToTCETradegoodId(commodityId):
-	global commodityIdToTceCache
-	try:
-		val = commodityIdToTceCache[commodityId]
-	except KeyError:
-#		print ("Adding to cache...")
-		commodityName = getCommodityNameFromId(commodityId)
-		val = getTceTradegoodId(commodityName)
-		commodityIdToTceCache[commodityId] = val
-	return val
-
 def getLocalMarketId(stationId):
 	return localMarketIdCache[int(stationId)]
 	
@@ -283,12 +236,12 @@ def updateTcePriceData(stationId, curPriceData):
 	deletePricesForMarket(localMarketId)
 	count=0
 	for curPrice in curPriceData:
-		commodityId = curPrice["commodityId"]
+		commodityId = curPrice["tgId"]
 		supply = curPrice["supply"]
 		buyPrice = curPrice["buyPrice"]
 		sellPrice = curPrice["sellPrice"]
 		collectedAt = curPrice["collectedAt"]
-		success = addTceSinglePrice(localMarketId, commodityId, supply, buyPrice, sellPrice)
+		success = addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice)
 		if success:
 			count += 1
 	setLocalMarketLastDate(localMarketId, collectedAt)
@@ -312,15 +265,10 @@ def setLocalMarketLastDate(localMarketId, collectedAt):
 	c.execute("UPDATE public_Markets set LastDate=?, LastTime=? WHERE id=?", (newTceDate, newTceTime, localMarketId))
 	
 # Update a single price
-def addTceSinglePrice(localMarketId, commodityId, supply, buyPrice, sellPrice):
+def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
 	global connPrices
 	global connUserMarkets
 	c = connPrices.cursor()
-	tradegoodId = translateCommodityIdToTCETradegoodId(commodityId)
-	if tradegoodId < 0:
-		if not fromTce:
-			print ("Unable to map commodityId", commodityId, getCommodityNameFromId(commodityId))
-		return False
 	c.execute("INSERT INTO public_MarketPrices ("
 		"MarketID, GoodID, Buy, Sell, Stock) "
 		"VALUES (?, ?, ?, ?, ?)",

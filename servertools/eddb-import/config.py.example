@@ -1,2 +1,4 @@
 # rename to config.py and enter your credentials
 mysql = {"db":'tcerelay', "user":'tcerelay', "pw":'supersecret'}
+# Max number of rows to import (0=all)
+maxRows = 0
