@@ -64,7 +64,7 @@ def show():
     apiVersion=jsonData["apiVersion"]
     
     if apiVersion < minApiVersion:
-        return(jsonify({"error":"apiVersion must be at least "+minApiVersion+", please update your client!"}))
+        return(jsonify({"error":"apiVersion must be at least "+str(minApiVersion)+", please update your client!"}))
         
     clientVersion=jsonData["clientVersion"]
     knownMarkets=jsonData["knownMarkets"]
