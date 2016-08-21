@@ -47,12 +47,12 @@ tceRelayVersion = "0.1"
 parser = argparse.ArgumentParser(description='TCE-Relay Client for Elite Dangerous')
 
 parser.add_argument('--from-tce', dest='fromTce', action='store_const',
-					const=True, default=False, help='Set by TCE Launcher to get clean output')
+                    const=True, default=False, help='Set by TCE Launcher to get clean output')
 parser.add_argument('--max-age', dest='maxAge', type=int, action='store',
-					default=14, help='Max age for the prices in days (defaults to 14)')
+                    default=14, help='Max age for the prices in days (defaults to 14)')
 parser.add_argument('--tce-path', dest='tcePath', action='store',
-					default="c:/TCE", help='Path to TCE (defaults to c:/TCE)')
-					
+                    default="c:/TCE", help='Path to TCE (defaults to c:/TCE)')
+                    
 args = parser.parse_args()
 
 maxAge = args.maxAge
@@ -60,17 +60,17 @@ tcePath = args.tcePath
 fromTce = args.fromTce
 
 def getMyPath(filename=None):
-	if getattr(sys, 'frozen', False):
-		# The application is frozen
-		datadir = os.path.dirname(sys.executable)
-	else:
-		# The application is not frozen
-		# Change this bit to match where you store your data files:
-		datadir = os.path.dirname(__file__)
-	if filename == None:
-		return datadir
-	else:
-		return os.path.join(datadir, filename)
+    if getattr(sys, 'frozen', False):
+        # The application is frozen
+        datadir = os.path.dirname(sys.executable)
+    else:
+        # The application is not frozen
+        # Change this bit to match where you store your data files:
+        datadir = os.path.dirname(__file__)
+    if filename == None:
+        return datadir
+    else:
+        return os.path.join(datadir, filename)
 
 tceRelayUrl='http://tcerelay.flat09.de/prices'
 
@@ -86,197 +86,197 @@ connTceRelayClient.row_factory = sqlite3.Row
 # These too, our caches
 localMarketIdCache = {}
 stationIdCache = {}
-	
+    
 def showProgress(curProgress, maxProgress, text="Progress"):
-	print ("PROGRESS:"+str(curProgress)+","+str(maxProgress)+","+text)
+    print ("PROGRESS:"+str(curProgress)+","+str(maxProgress)+","+text)
 
 def showStatus(text):
-	print ("STATUS:"+text)
-	
+    print ("STATUS:"+text)
+    
 def getLocalMarketId(stationId):
-	return localMarketIdCache[int(stationId)]
-	
+    return localMarketIdCache[int(stationId)]
+    
 def getStationId(marketName, starName, marketId):
-	global connTceRelayClient
-	
-	try:
-		val = stationIdCache[int(marketId)]
-	except KeyError:
-		c = connTceRelayClient.cursor()
-	
-		c.execute("SELECT stationId FROM stationIdMappings WHERE stationName=? AND systemName=?", (marketName, starName))
-		result = c.fetchone()
-		if (result != None):
-			val = result["stationId"]
-		else:
-			val = -1
-		stationIdCache[int(marketId)] = val
-		localMarketIdCache[val] = int(marketId)
-	return val
+    global connTceRelayClient
+    
+    try:
+        val = stationIdCache[int(marketId)]
+    except KeyError:
+        c = connTceRelayClient.cursor()
+    
+        c.execute("SELECT stationId FROM stationIdMappings WHERE stationName=? AND systemName=?", (marketName, starName))
+        result = c.fetchone()
+        if (result != None):
+            val = result["stationId"]
+        else:
+            val = -1
+        stationIdCache[int(marketId)] = val
+        localMarketIdCache[val] = int(marketId)
+    return val
 
 def getJsonRequest():
-	showStatus("Preparing request")
-	global connUserMarkets
-	global maxAge
-	
-	t1 = timeit.default_timer()
+    showStatus("Preparing request")
+    global connUserMarkets
+    global maxAge
+    
+    t1 = timeit.default_timer()
 
-	cUM = connUserMarkets.cursor()
+    cUM = connUserMarkets.cursor()
 
-	cUM.execute("SELECT * FROM public_Markets")
+    cUM.execute("SELECT * FROM public_Markets")
 
-	jsonData = {}
-	jsonData["apiVersion"] = 1
-	jsonData["clientVersion"] = tceRelayVersion
-	jsonData["knownMarkets"] = []
-	jsonData["maxAge"] = maxAge
+    jsonData = {}
+    jsonData["apiVersion"] = 1
+    jsonData["clientVersion"] = tceRelayVersion
+    jsonData["knownMarkets"] = []
+    jsonData["maxAge"] = maxAge
 
-	count = 0
-	markets = cUM.fetchall()
-	for market in markets:
-		count += 1
-		if fromTce: # and count % 10 == 0:
-			showProgress(count, len(markets), "Preparing request")
-		localMarketId=market["ID"]
-		marketName=market["MarketName"]
-		starName=market["StarName"]
-		stationId = getStationId(marketName, starName, localMarketId)
-		oldDateStr = market["LastDate"]
-		oldTimeStr = market["LastTime"]
-		oldTimeArray = oldTimeStr.split(":")
-		oldH = oldTimeArray[0]
-		oldM = oldTimeArray[1]
-		oldS = oldTimeArray[2]
-		oldDate = datetime(613, 12, 31) + timedelta(days=int(oldDateStr), hours=int(oldH), minutes=int(oldM), seconds=int(oldS))
+    count = 0
+    markets = cUM.fetchall()
+    for market in markets:
+        count += 1
+        if fromTce: # and count % 10 == 0:
+            showProgress(count, len(markets), "Preparing request")
+        localMarketId=market["ID"]
+        marketName=market["MarketName"]
+        starName=market["StarName"]
+        stationId = getStationId(marketName, starName, localMarketId)
+        oldDateStr = market["LastDate"]
+        oldTimeStr = market["LastTime"]
+        oldTimeArray = oldTimeStr.split(":")
+        oldH = oldTimeArray[0]
+        oldM = oldTimeArray[1]
+        oldS = oldTimeArray[2]
+        oldDate = datetime(613, 12, 31) + timedelta(days=int(oldDateStr), hours=int(oldH), minutes=int(oldM), seconds=int(oldS))
 
-		if stationId >= 0:
-			try:
-				# Get UTC timestamp
-				t=int(oldDate.replace(tzinfo=timezone.utc).timestamp())
-			except OverflowError:
-				t=0
-			# print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
-			jsonData["knownMarkets"].append({"id":stationId, "t":t})
-		else:
-			if not fromTce:
-				print(marketName, starName, stationId, "ID not found!!!!!!!!")
-	
-		# if len(jsonData["knownMarkets"]) > 50:
-			# break
-		# break
-		
-		
-	t2 = timeit.default_timer()
-	if not fromTce:
-		print ("Requesting data for",len(jsonData["knownMarkets"]),"markets")
-		print ("getJsonRequest took",(t2-t1),"seconds")
-	return jsonData
+        if stationId >= 0:
+            try:
+                # Get UTC timestamp
+                t=int(oldDate.replace(tzinfo=timezone.utc).timestamp())
+            except OverflowError:
+                t=0
+            # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
+            jsonData["knownMarkets"].append({"id":stationId, "t":t})
+        else:
+            if not fromTce:
+                print(marketName, starName, stationId, "ID not found!!!!!!!!")
+    
+        # if len(jsonData["knownMarkets"]) > 50:
+            # break
+        # break
+        
+        
+    t2 = timeit.default_timer()
+    if not fromTce:
+        print ("Requesting data for",len(jsonData["knownMarkets"]),"markets")
+        print ("getJsonRequest took",(t2-t1),"seconds")
+    return jsonData
 
 def sendRequest(jsonData):
-	showStatus("Sending request")
-	t1 = timeit.default_timer()
-	# print(jsonData)
+    showStatus("Sending request")
+    t1 = timeit.default_timer()
+    # print(jsonData)
 
-	additional_headers = {}
-	additional_headers['content-encoding'] = 'gzip'
-	jsonAsString = json.dumps(jsonData)
-	compressedJson = zlib.compress(jsonAsString.encode())
+    additional_headers = {}
+    additional_headers['content-encoding'] = 'gzip'
+    jsonAsString = json.dumps(jsonData)
+    compressedJson = zlib.compress(jsonAsString.encode())
 
-	if not fromTce:
-		print ("Compressed JsonRequest from", len(jsonAsString), "to", len(compressedJson), "bytes")
-	r = requests.post(tceRelayUrl, data=compressedJson, headers=additional_headers)
+    if not fromTce:
+        print ("Compressed JsonRequest from", len(jsonAsString), "to", len(compressedJson), "bytes")
+    r = requests.post(tceRelayUrl, data=compressedJson, headers=additional_headers)
 
-	if not fromTce:
-		print(r.status_code)
-		print (r.headers)
+    if not fromTce:
+        print(r.status_code)
+        print (r.headers)
 
-	jsonResponse=r.json()
+    jsonResponse=r.json()
 
-	t2 = timeit.default_timer()
-	if not fromTce:
-		print ("sendRequest took",(t2-t1),"seconds")
-	return jsonResponse
+    t2 = timeit.default_timer()
+    if not fromTce:
+        print ("sendRequest took",(t2-t1),"seconds")
+    return jsonResponse
 
 def processJsonResponse(jsonResponse):
-	showStatus("Processing response")
-	t1 = timeit.default_timer()
-	if not fromTce:
-		print("ServerProcessTime", jsonResponse["processTime"])
-	priceData=jsonResponse["priceData"]
-	# print(priceData)
-	
-	if not fromTce:
-		print("Got prices for",len(priceData),"markets")
-	
-	countPricesUpdated = 0
-	countStationsUpdated = 0
-	countStations = 0
-	for stationId in priceData:
-		countStations += 1
-		if fromTce: # and countStations % 10 == 0:
-			showProgress(countStations, len(priceData), "Updating prices")
-		curPriceData = priceData[stationId]
-		if len(curPriceData) > 0:
-			countStationsUpdated += 1
-			countPricesUpdated += updateTcePriceData(stationId, curPriceData)
-	t2 = timeit.default_timer()
-	if not fromTce:
-		print ("processJsonResponse took",(t2-t1),"seconds")
-		print ("Updated",countStationsUpdated,"stations with",countPricesUpdated,"prices")
-	else:
-		#text="Updated "+strcountStationsUpdated+" stations with "+countPricesUpdated+"prices"
-		#showStatus(text)
-		showStatus("Finished")
-	
+    showStatus("Processing response")
+    t1 = timeit.default_timer()
+    if not fromTce:
+        print("ServerProcessTime", jsonResponse["processTime"])
+    priceData=jsonResponse["priceData"]
+    # print(priceData)
+    
+    if not fromTce:
+        print("Got prices for",len(priceData),"markets")
+    
+    countPricesUpdated = 0
+    countStationsUpdated = 0
+    countStations = 0
+    for stationId in priceData:
+        countStations += 1
+        if fromTce: # and countStations % 10 == 0:
+            showProgress(countStations, len(priceData), "Updating prices")
+        curPriceData = priceData[stationId]
+        if len(curPriceData) > 0:
+            countStationsUpdated += 1
+            countPricesUpdated += updateTcePriceData(stationId, curPriceData)
+    t2 = timeit.default_timer()
+    if not fromTce:
+        print ("processJsonResponse took",(t2-t1),"seconds")
+        print ("Updated",countStationsUpdated,"stations with",countPricesUpdated,"prices")
+    else:
+        #text="Updated "+strcountStationsUpdated+" stations with "+countPricesUpdated+"prices"
+        #showStatus(text)
+        showStatus("Finished")
+    
 # Update one market
 def updateTcePriceData(stationId, curPriceData):
-	localMarketId = getLocalMarketId(stationId)
-	if localMarketId < 0 or curPriceData == None or len(curPriceData) == 0:
-		return
-	deletePricesForMarket(localMarketId)
-	count=0
-	for curPrice in curPriceData:
-		tradegoodId = curPrice["tgId"]
-		supply = curPrice["supply"]
-		buyPrice = curPrice["buyPrice"]
-		sellPrice = curPrice["sellPrice"]
-		collectedAt = curPrice["collectedAt"]
-		success = addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice)
-		if success:
-			count += 1
-	setLocalMarketLastDate(localMarketId, collectedAt)
-	return count
+    localMarketId = getLocalMarketId(stationId)
+    if localMarketId < 0 or curPriceData == None or len(curPriceData) == 0:
+        return
+    deletePricesForMarket(localMarketId)
+    count=0
+    for curPrice in curPriceData:
+        tradegoodId = curPrice["tgId"]
+        supply = curPrice["supply"]
+        buyPrice = curPrice["buyPrice"]
+        sellPrice = curPrice["sellPrice"]
+        collectedAt = curPrice["collectedAt"]
+        success = addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice)
+        if success:
+            count += 1
+    setLocalMarketLastDate(localMarketId, collectedAt)
+    return count
 
 def deletePricesForMarket(localMarketId):
-	global connPrices
-	c = connPrices.cursor()
-	c.execute("DELETE FROM public_MarketPrices WHERE MarketID=?", (localMarketId, ))
-	
+    global connPrices
+    c = connPrices.cursor()
+    c.execute("DELETE FROM public_MarketPrices WHERE MarketID=?", (localMarketId, ))
+    
 def setLocalMarketLastDate(localMarketId, collectedAt):
-	global connUserMarkets
-	c = connUserMarkets.cursor()
-	if not fromTce:
-		print ("Updating LastDate for localMarketId", localMarketId, "to", collectedAt)
-	# Magic date calculation :)
-	collectedDate = datetime.utcfromtimestamp(collectedAt)
-	tceBase = collectedDate - datetime(613, 12, 31)
-	newTceDate = str(int(tceBase/timedelta(days=1)))
-	newTceTime = collectedDate.strftime("%H:%M:%S")
-	c.execute("UPDATE public_Markets set LastDate=?, LastTime=? WHERE id=?", (newTceDate, newTceTime, localMarketId))
-	
+    global connUserMarkets
+    c = connUserMarkets.cursor()
+    if not fromTce:
+        print ("Updating LastDate for localMarketId", localMarketId, "to", collectedAt)
+    # Magic date calculation :)
+    collectedDate = datetime.utcfromtimestamp(collectedAt)
+    tceBase = collectedDate - datetime(613, 12, 31)
+    newTceDate = str(int(tceBase/timedelta(days=1)))
+    newTceTime = collectedDate.strftime("%H:%M:%S")
+    c.execute("UPDATE public_Markets set LastDate=?, LastTime=? WHERE id=?", (newTceDate, newTceTime, localMarketId))
+    
 # Update a single price
 def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
-	global connPrices
-	global connUserMarkets
-	c = connPrices.cursor()
-	c.execute("INSERT INTO public_MarketPrices ("
-		"MarketID, GoodID, Buy, Sell, Stock) "
-		"VALUES (?, ?, ?, ?, ?)",
-		(localMarketId, tradegoodId, buyPrice, sellPrice, supply))
-	return True
-	# print("Updating price", localMarketId, tradegoodId, supply, buyPrice, sellPrice, collectedAt)
-	#print ("Local market ID", localMarketId)
-			
+    global connPrices
+    global connUserMarkets
+    c = connPrices.cursor()
+    c.execute("INSERT INTO public_MarketPrices ("
+        "MarketID, GoodID, Buy, Sell, Stock) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (localMarketId, tradegoodId, buyPrice, sellPrice, supply))
+    return True
+    # print("Updating price", localMarketId, tradegoodId, supply, buyPrice, sellPrice, collectedAt)
+    #print ("Local market ID", localMarketId)
+            
 t1 = timeit.default_timer()
 
 jsonData = getJsonRequest()
@@ -288,4 +288,4 @@ connPrices.commit()
 
 t2 = timeit.default_timer()
 if not fromTce:
-	print ("Total runtime:",(t2-t1),"seconds")
+    print ("Total runtime:",(t2-t1),"seconds")

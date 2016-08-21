@@ -27,44 +27,44 @@ commodityIdToTceCache = {}
 commodityCache = {}
 
 def getCommodityById(commodityId):
-	global commodities
-	global commodityCache
-	if len(commodityCache) == 0:
-		t1 = timeit.default_timer()
-		for commodity in commodities:
-			commodityCache[commodity["id"]] = commodity
-		t2 = timeit.default_timer()
-		if not fromTce:
-			print ("Finished... Commodity caching took", (t2-t1), "Seconds")
-	return commodityCache[int(commodityId)]
+    global commodities
+    global commodityCache
+    if len(commodityCache) == 0:
+        t1 = timeit.default_timer()
+        for commodity in commodities:
+            commodityCache[commodity["id"]] = commodity
+        t2 = timeit.default_timer()
+        if not fromTce:
+            print ("Finished... Commodity caching took", (t2-t1), "Seconds")
+    return commodityCache[int(commodityId)]
 
 def getCommodityNameFromId(commodityId):
-	global commodities
-	commodity = getCommodityById(commodityId)
-	if commodity != None:
-		return commodity["name"]
-	return None
+    global commodities
+    commodity = getCommodityById(commodityId)
+    if commodity != None:
+        return commodity["name"]
+    return None
 
 def getTceTradegoodId(commodityName):
-	global connResources
-	c = connResources.cursor()
-	c.execute("SELECT id from public_Goods WHERE Tradegood LIKE ?", (commodityName, ))
-	result = c.fetchone()
-	if (result != None):
-		return result["id"]
-	else:
-		return -1
+    global connResources
+    c = connResources.cursor()
+    c.execute("SELECT id from public_Goods WHERE Tradegood LIKE ?", (commodityName, ))
+    result = c.fetchone()
+    if (result != None):
+        return result["id"]
+    else:
+        return -1
 
 def translateCommodityIdToTCETradegoodId(commodityId):
-	global commodityIdToTceCache
-	try:
-		val = commodityIdToTceCache[commodityId]
-	except KeyError:
+    global commodityIdToTceCache
+    try:
+        val = commodityIdToTceCache[commodityId]
+    except KeyError:
 #		print ("Adding to cache...")
-		commodityName = getCommodityNameFromId(commodityId)
-		val = getTceTradegoodId(commodityName)
-		commodityIdToTceCache[commodityId] = val
-	return val
+        commodityName = getCommodityNameFromId(commodityId)
+        val = getTceTradegoodId(commodityName)
+        commodityIdToTceCache[commodityId] = val
+    return val
 
 rowCount = 0
 updateCount = 0
@@ -97,11 +97,11 @@ try:
         demand = row["demand"]
         collectedAt = row["collected_at"]
  
-		tradegoodId = translateCommodityIdToTCETradegoodId(commodityId)
-		if tradegoodId < 0:
-			if not fromTce:
-				print ("Unable to map commodityId", commodityId, getCommodityNameFromId(commodityId))
-			continue
+        tradegoodId = translateCommodityIdToTCETradegoodId(commodityId)
+        if tradegoodId < 0:
+            if not fromTce:
+                print ("Unable to map commodityId", commodityId, getCommodityNameFromId(commodityId))
+            continue
 
         list.append((stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt))
     
