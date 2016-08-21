@@ -4,6 +4,7 @@ import MySQLdb
 import config
 import os
 import sqlite3
+import json
 
 # Import EDDB data to server DB
 # 
