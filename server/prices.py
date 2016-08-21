@@ -101,8 +101,6 @@ def show():
 
     access = Access(at=datetime.datetime.now(), ip="0.0.0.0", guid="", knownMarkets=knownMarkets, sentMarkets=len(priceData), sentPrices=countPrices, processTime=processTime)
     access.save()
-)
-    
     
 #    prices.logger.info("markets="+len(priceData)+"/"+len(knownMarkets)+", processTime="+(t2-t1))
     return jsonify(list)
