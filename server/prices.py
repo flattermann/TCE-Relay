@@ -33,6 +33,8 @@ class Access(peewee.Model):
     at = peewee.DateTimeField()
     ip = peewee.CharField(index=True)
     guid = peewee.CharField(index=True)
+    clientVersion = peewee.CharField(index=True)
+    apiVersion = peewee.IntegerField(index=True)
     knownMarkets = peewee.IntegerField()
     sentMarkets = peewee.IntegerField()
     sentPrices = peewee.IntegerField()
@@ -101,7 +103,7 @@ def show():
     list["processTime"] = processTime
 
     clientIp = request.access_route[0]
-    access = Access(at=datetime.utcnow(), ip=clientIp, guid=guid, knownMarkets=len(knownMarkets), sentMarkets=len(priceData), sentPrices=countPrices, processTime=processTime)
+    access = Access(at=datetime.utcnow(), ip=clientIp, guid=guid, clientVersion=clientVersion, apiVersion=apiVersion, knownMarkets=len(knownMarkets), sentMarkets=len(priceData), sentPrices=countPrices, processTime=processTime)
     access.save()
     
 #    prices.logger.info("markets="+len(priceData)+"/"+len(knownMarkets)+", processTime="+(t2-t1))
