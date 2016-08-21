@@ -43,6 +43,7 @@ import sys
 import os
 
 tceRelayVersion = "0.1"
+apiVersion = 1
 
 parser = argparse.ArgumentParser(description='TCE-Relay Client for Elite Dangerous')
 
@@ -126,7 +127,7 @@ def getJsonRequest():
     cUM.execute("SELECT * FROM public_Markets")
 
     jsonData = {}
-    jsonData["apiVersion"] = 1
+    jsonData["apiVersion"] = apiVersion
     jsonData["clientVersion"] = tceRelayVersion
     jsonData["knownMarkets"] = []
     jsonData["maxAge"] = maxAge
