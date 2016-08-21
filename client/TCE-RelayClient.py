@@ -93,6 +93,9 @@ def showProgress(curProgress, maxProgress, text="Progress"):
 
 def showStatus(text):
     print ("STATUS:"+text)
+
+def showError(text):
+    print ("ERROR:"+text)
     
 def getLocalMarketId(stationId):
     return localMarketIdCache[int(stationId)]
@@ -201,6 +204,9 @@ def sendRequest(jsonData):
 def processJsonResponse(jsonResponse):
     showStatus("Processing response")
     t1 = timeit.default_timer()
+    if "error" in jsonResponse:
+        showError(jsonResponse["error"])
+        exit()
     if not fromTce:
         print("ServerProcessTime", jsonResponse["processTime"])
     priceData=jsonResponse["priceData"]

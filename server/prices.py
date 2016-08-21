@@ -10,6 +10,7 @@ import config
 
 prices = Blueprint('prices', __name__)
 db = MySQLDatabase(config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
+minApiVersion = 1
 
 class CommodityPrice(peewee.Model):
     id = PrimaryKeyField()
@@ -47,6 +48,10 @@ def show():
 #    json=request.get_json(force=True)
 
     apiVersion=jsonData["apiVersion"]
+    
+    if apiVersion < minApiVersion:
+        return(jsonify({"error":"apiVersion must be at least "+minApiVersion+", please update your client!"}))
+        
     clientVersion=jsonData["clientVersion"]
     knownMarkets=jsonData["knownMarkets"]
     maxAge=jsonData["maxAge"]
