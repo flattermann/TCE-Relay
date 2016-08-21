@@ -1,4 +1,5 @@
 client/build
+client/TCE-RelayClient_local.db
 server/config.py
 server/config.pyc
 servertools/eddb-import/config.pyc
