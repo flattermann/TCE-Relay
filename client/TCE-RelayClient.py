@@ -90,7 +90,7 @@ localMarketIdCache = {}
 stationIdCache = {}
 
 # TODO save in local DB to make persistent
-guid=uuid.uuid4()
+guid=str(uuid.uuid4())
     
 def showProgress(curProgress, maxProgress, text="Progress"):
     print ("PROGRESS:"+str(curProgress)+","+str(maxProgress)+","+text)
@@ -126,6 +126,7 @@ def getJsonRequest():
     showStatus("Preparing request")
     global connUserMarkets
     global maxAge
+    global guid
     
     t1 = timeit.default_timer()
 
@@ -138,7 +139,8 @@ def getJsonRequest():
     jsonData["clientVersion"] = tceRelayVersion
     jsonData["knownMarkets"] = []
     jsonData["maxAge"] = maxAge
-
+    jsonData["guid"] = guid
+    
     count = 0
     markets = cUM.fetchall()
     for market in markets:
