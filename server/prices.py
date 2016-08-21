@@ -99,7 +99,7 @@ def show():
     list["priceData"] = priceData
     list["processTime"] = processTime
 
-    access = Access(at=datetime.utcnow(), ip="0.0.0.0", guid="", knownMarkets=knownMarkets, sentMarkets=len(priceData), sentPrices=countPrices, processTime=processTime)
+    access = Access(at=datetime.utcnow(), ip="0.0.0.0", guid="", knownMarkets=len(knownMarkets), sentMarkets=len(priceData), sentPrices=countPrices, processTime=processTime)
     access.save()
     
 #    prices.logger.info("markets="+len(priceData)+"/"+len(knownMarkets)+", processTime="+(t2-t1))
