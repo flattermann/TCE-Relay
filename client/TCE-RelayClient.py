@@ -41,6 +41,7 @@ from datetime import datetime, timedelta, timezone
 import argparse
 import sys
 import os
+import uuid
 
 tceRelayVersion = "0.1"
 apiVersion = 2
@@ -87,6 +88,9 @@ connTceRelayClient.row_factory = sqlite3.Row
 # These too, our caches
 localMarketIdCache = {}
 stationIdCache = {}
+
+# TODO save in local DB to make persistent
+guid=uuid.uuid4()
     
 def showProgress(curProgress, maxProgress, text="Progress"):
     print ("PROGRESS:"+str(curProgress)+","+str(maxProgress)+","+text)
