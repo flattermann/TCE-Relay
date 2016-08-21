@@ -11,7 +11,7 @@ import json
 # needs commodities.json and listings.csv from EDDB
 # needs Resources.db from TCE
 
-scriptDir = os.path.dirname(__file__)
+scriptDir = os.path.dirname(os.path.realpath(__file__))
 
 t1 = timeit.default_timer()
 
