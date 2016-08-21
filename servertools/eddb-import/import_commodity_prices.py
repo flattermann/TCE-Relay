@@ -26,6 +26,7 @@ connResources.row_factory = sqlite3.Row
 
 commodityIdToTceCache = {}
 commodityCache = {}
+missingCommodityMappings = {}
 
 def getCommodityById(commodityId):
     global commodities
@@ -35,8 +36,7 @@ def getCommodityById(commodityId):
         for commodity in commodities:
             commodityCache[commodity["id"]] = commodity
         t2 = timeit.default_timer()
-        if not fromTce:
-            print ("Finished... Commodity caching took", (t2-t1), "Seconds")
+        print ("Finished... Commodity caching took", (t2-t1), "Seconds")
     return commodityCache[int(commodityId)]
 
 def getCommodityNameFromId(commodityId):
@@ -56,15 +56,28 @@ def getTceTradegoodId(commodityName):
     else:
         return -1
 
+def addMissingCommodityMapping(id, name):
+    global missingCommodityMappings
+    try:
+        val=missingCommodityMappings[id]
+        val[1] += 1
+    except KeyError:
+        val = [name, 1]
+    missingCommodityMappings[id] = val
+
 def translateCommodityIdToTCETradegoodId(commodityId):
     global commodityIdToTceCache
+    commodityName = ""
+    val = -1
     try:
         val = commodityIdToTceCache[commodityId]
     except KeyError:
-#		print ("Adding to cache...")
+#        print ("Adding to cache...")
         commodityName = getCommodityNameFromId(commodityId)
         val = getTceTradegoodId(commodityName)
         commodityIdToTceCache[commodityId] = val
+    if val < 0:
+        addMissingCommodityMapping(commodityId, commodityName)
     return val
 
 rowCount = 0
@@ -82,7 +95,7 @@ try:
     for row in listingsCsv:
         rowCount += 1
         if len(list) == 1000:
-            c.executemany("""INSERT INTO commoditypriceTemp (stationId, commodityId, supply, buyPrice, sellPrice, demand, collectedAt) VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            c.executemany("""INSERT INTO commoditypriceTemp (stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt) VALUES (%s, %s, %s, %s, %s, %s, %s)""",
                 list)
             list = []
         if (rowCount % 50000 == 0):
@@ -100,8 +113,7 @@ try:
  
         tradegoodId = translateCommodityIdToTCETradegoodId(commodityId)
         if tradegoodId < 0:
-            if not fromTce:
-                print ("Unable to map commodityId", commodityId, getCommodityNameFromId(commodityId))
+#            print ("Unable to map commodityId", commodityId, getCommodityNameFromId(commodityId))
             continue
 
         list.append((stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt))
@@ -118,3 +130,5 @@ c.execute("RENAME TABLE commodityprice TO commoditypriceOld, commoditypriceTemp 
 
 t2 = timeit.default_timer()
 print ("Import took", t2-t1, "seconds")
+
+print missingCommodityMappings
