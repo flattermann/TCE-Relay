@@ -2,14 +2,17 @@ import csv
 import timeit
 import MySQLdb
 import config
+import os
 
 maxRow = 0
+
+scriptDir = os.path.dirname(__file__)
 
 t1 = timeit.default_timer()
 
 db = MySQLdb.connect(db=config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
 
-listingsCsv = csv.DictReader(open('listings.csv'))
+listingsCsv = csv.DictReader(open(scriptDir+'/listings.csv'))
 
 rowCount = 0
 updateCount = 0
