@@ -28,9 +28,23 @@ class CommodityPrice(peewee.Model):
             (('stationId', 'tradegoodId'), True)
         )
 
+class Access(peewee.Model):
+    id = PrimaryKeyField()
+    at = peewee.DateTimeField()
+    ip = peewee.CharField(index=True)
+    guid = peewee.CharField(index=True)
+    knownMarkets = peewee.IntegerField()
+    sentMarkets = peewee.IntegerField()
+    sentPrices = peewee.IntegerField()
+    processTime = peewee.DoubleField()
+
+    class Meta:
+        database = db
+
 @prices.before_request
 def before_request():
     db.connect()
+    db.create_tables([CommodityPrice, Access], safe=True)
 
 @prices.after_request
 def after_request(response):
@@ -61,7 +75,7 @@ def show():
 
     list = {}
     priceData = {}
-
+    countPrices = 0
     # Limit to 1000 Markets
     for market in knownMarkets[:1000]:
         curStationPrices = []
@@ -75,13 +89,20 @@ def show():
             curStationPrices.append(
                 {"tgId":price.tradegoodId, "supply":price.supply, "buyPrice":price.buyPrice, "sellPrice":price.sellPrice, "collectedAt":marketDate} 
             )
+            countPrices += 1
         if len(curStationPrices)>0:
             priceData[market["id"]]=curStationPrices
 
     t2 = timeit.default_timer()
 
+    processTime = (t2-t1)
     list["priceData"] = priceData
-    list["processTime"] = (t2-t1)
+    list["processTime"] = processTime
 
+    access = Access(at=datetime.datetime.now(), ip="0.0.0.0", guid="", knownMarkets=knownMarkets, sentMarkets=len(priceData), sentPrices=countPrices, processTime=processTime)
+    access.save()
+)
+    
+    
 #    prices.logger.info("markets="+len(priceData)+"/"+len(knownMarkets)+", processTime="+(t2-t1))
     return jsonify(list)
