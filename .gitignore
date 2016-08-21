@@ -1,3 +1,4 @@
+client/build
 server/config.py
 server/config.pyc
 servertools/eddb-import/config.pyc
