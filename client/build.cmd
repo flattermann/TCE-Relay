@@ -1,5 +1,5 @@
 @echo off
-set ZIPFILE=D:\ownCloud\tce\tceRelay.zip
+set ZIPFILE=D:\ownCloud\tce\tceRelayClient64.zip
 set BUILDDIR=build\exe.win-amd64-3.4
 
 REM Clean up build area
