@@ -10,6 +10,9 @@ python setup.py build
 REM Copy DB
 copy TCE-RelayClient.db "%BUILDDIR%"
 
+REM Copy License
+copy ..\LICENSE.TXT "%BUILDDIR%"
+
 REM Del ZIP
 del "%ZIPFILE%"
 
