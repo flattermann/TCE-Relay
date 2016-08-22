@@ -19,6 +19,7 @@ class Access(peewee.Model):
     knownMarkets = peewee.IntegerField()
     sentMarkets = peewee.IntegerField()
     sentPrices = peewee.IntegerField()
+    sentBytes = peewee.IntegerField()
     processTime = peewee.DoubleField()
 
     class Meta:

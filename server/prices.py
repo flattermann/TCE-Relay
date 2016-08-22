@@ -38,6 +38,7 @@ class Access(peewee.Model):
     knownMarkets = peewee.IntegerField()
     sentMarkets = peewee.IntegerField()
     sentPrices = peewee.IntegerField()
+    sentBytes = peewee.IntegerField()
     processTime = peewee.DoubleField()
 
     class Meta:
@@ -95,15 +96,18 @@ def show():
         if len(curStationPrices)>0:
             priceData[market["id"]]=curStationPrices
 
-    t2 = time.clock()
-
-    processTime = (t2-t1)
     list["priceData"] = priceData
     list["processTime"] = processTime
 
+    ret = jsonify(list)
+
+    t2 = time.clock()
+
+    processTime = (t2-t1)
+
     clientIp = request.access_route[0]
-    access = Access(at=datetime.utcnow(), ip=clientIp, guid=guid, clientVersion=clientVersion, apiVersion=apiVersion, knownMarkets=len(knownMarkets), sentMarkets=len(priceData), sentPrices=countPrices, processTime=processTime)
+    access = Access(at=datetime.utcnow(), ip=clientIp, guid=guid, clientVersion=clientVersion, apiVersion=apiVersion, knownMarkets=len(knownMarkets), sentMarkets=len(priceData), sentPrices=countPrices, sentBytes=len(ret), processTime=processTime)
     access.save()
     
 #    prices.logger.info("markets="+len(priceData)+"/"+len(knownMarkets)+", processTime="+(t2-t1))
-    return jsonify(list)
+    return ret
