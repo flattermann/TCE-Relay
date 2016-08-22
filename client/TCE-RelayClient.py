@@ -42,6 +42,7 @@ import argparse
 import sys
 import os
 import uuid
+import re
 
 tceRelayVersion = "0.1"
 apiVersion = 2
@@ -137,10 +138,20 @@ def getStationId(marketName, starName, marketId):
     
         c.execute("SELECT stationId FROM stationIdMappings WHERE stationName=? AND systemName=?", (marketName, starName))
         result = c.fetchone()
-        if (result != None):
+
+        if result != None:
             val = result["stationId"]
         else:
-            val = -1
+            # Try planetary (systemName = systemName: planetName)
+            starName = re.sub(":.*", "", starName)
+            c.execute("SELECT stationId FROM stationIdMappings WHERE stationName=? AND systemName=?", (marketName, starName))
+            result = c.fetchone()
+            if result != None:
+                val = result["stationId"]
+            else:
+                # Giving up
+                val = -1
+        
         stationIdCache[int(marketId)] = val
         localMarketIdCache[val] = int(marketId)
     return val
