@@ -55,6 +55,8 @@ parser.add_argument('--max-age', dest='maxAge', type=int, action='store',
                     default=14, help='Max age for the prices in days (defaults to 14)')
 parser.add_argument('--tce-path', dest='tcePath', action='store',
                     default="c:/TCE", help='Path to TCE (defaults to c:/TCE)')
+parser.add_argument('--version', '-v', action='version',
+                    version=tceRelayVersion)
                     
 args = parser.parse_args()
 
