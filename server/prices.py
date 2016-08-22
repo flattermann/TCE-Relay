@@ -55,6 +55,7 @@ def after_request(response):
 
 @prices.route("/prices", methods=['GET', 'POST'])
 def show():
+    t1 = time.clock()
     data=request.data
     try:
         data=zlib.decompress(data)
@@ -73,8 +74,6 @@ def show():
     maxAge=jsonData["maxAge"]
     guid=jsonData["guid"]
     collectedAtMin=time.mktime((datetime.utcnow() - timedelta(days=maxAge)).timetuple())
-        
-    t1 = timeit.default_timer()
 
     list = {}
     priceData = {}
@@ -96,7 +95,7 @@ def show():
         if len(curStationPrices)>0:
             priceData[market["id"]]=curStationPrices
 
-    t2 = timeit.default_timer()
+    t2 = time.clock()
 
     processTime = (t2-t1)
     list["priceData"] = priceData
