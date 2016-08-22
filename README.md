@@ -25,7 +25,7 @@ If you start from command line, you'll get more debug output.
 ```
 
 ### Compile from source
-Install Python 3.4 from http://python.org (Or a newer version, but make sure that cx_Freeze and the other modules supports your Python version!)
+Install Python **3.4** from http://python.org (or a newer version, but make sure that cx_Freeze and the other modules supports your Python version!)
 
 Open a command console (cmd.exe) and run:
 ```
