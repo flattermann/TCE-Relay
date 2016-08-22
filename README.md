@@ -22,6 +22,7 @@ If you start from command line, you'll get more debug output.
 --tce-path		path to TCE (defaults to c:/TCE)
 --max-age		Max age for the prices in days
 --from-tce		is set by TCE if ran from TCE launcher
+--version, -v		show version and exit
 ```
 
 ### Compile from source
@@ -38,3 +39,11 @@ Open a command console (cmd.exe) and run:
 	# Create .exe
 	python setup.py build
 ```
+
+### License ###
+TCE-Relay is licensed GPL3.
+
+### Improvements ###
+This is actually my **first Python script ever**. There's probably a lot of room for code improvements and performance tweaks.
+
+Feel free to improve the code and make a pull request. I'm happy to include your optimizations!
