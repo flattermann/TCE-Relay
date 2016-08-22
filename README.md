@@ -20,7 +20,7 @@ If you start from command line, you'll get more debug output.
 ### Command Line arguments
 ```
 --tce-path		path to TCE (defaults to c:/TCE)
---maxAge		Max age for the prices in days
+--max-age		Max age for the prices in days
 --from-tce		is set by TCE if ran from TCE launcher
 ```
 
