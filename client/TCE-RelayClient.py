@@ -349,10 +349,24 @@ def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
             
 t1 = timeit.default_timer()
 
-jsonData = getJsonRequest()
-jsonResponse = sendRequest(jsonData)
-processJsonResponse(jsonResponse)
+try:
+    jsonData = getJsonRequest()
+except:
+    showError("Unable to create request!")
+    exit(1)
 
+try:
+    jsonResponse = sendRequest(jsonData)
+except:
+    showError("Server unreachable!")
+    exit(2)
+
+try:
+    processJsonResponse(jsonResponse)
+except:
+    showError("Unable to parse response!")
+    exit(3)
+    
 connUserMarkets.commit()
 connPrices.commit()
 
