@@ -67,7 +67,7 @@ def show():
     apiVersion=jsonData["apiVersion"]
     
     if apiVersion < minApiVersion:
-        return(jsonify({"error":"apiVersion must be at least "+str(minApiVersion)+", please update your client!"}))
+        return(jsonify({"error":"Version outdated, please update TCE-Relay!"}))
         
     clientVersion=jsonData["clientVersion"]
     knownMarkets=jsonData["knownMarkets"]
