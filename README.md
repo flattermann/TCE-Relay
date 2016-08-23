@@ -35,9 +35,11 @@ Open a command console (cmd.exe) and run:
 	!! Install Visual C++ BuildTools if necessary: http://landinghub.visualstudio.com/visual-cpp-build-tools
 	pip install cx_Freeze
 	pip install requests
+	cd <yourPythonDir>
+	python.exe scripts\cxfreeze-postinstall
 	cd <yourSourceDirectory>
 	# Create .exe
-	python setup.py build
+	python.exe setup.py build
 ```
 
 ### License ###
