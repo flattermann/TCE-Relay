@@ -269,7 +269,7 @@ def processJsonResponse(jsonResponse):
     t1 = timeit.default_timer()
     if "error" in jsonResponse:
         showError(jsonResponse["error"])
-        exit()
+        exit(4)
     if not fromTce:
         print("ServerProcessTime", jsonResponse["processTime"])
     priceData=jsonResponse["priceData"]
