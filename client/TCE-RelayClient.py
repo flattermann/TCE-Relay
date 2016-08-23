@@ -56,7 +56,13 @@ parser.add_argument('--max-age', dest='maxAge', type=int, action='store',
 parser.add_argument('--tce-path', dest='tcePath', action='store',
                     default="c:/TCE", help='Path to TCE (defaults to c:/TCE)')
 parser.add_argument('--fetch-older', '-o', dest='fetchOlder', action='store_const',
-                    const=True, default=False, help='Testing only: Even fetch prices that are older than your local DB')
+                    const=True, default=False, help='DEBUG: Even fetch prices that are older than your local DB')
+parser.add_argument('--stationname', '-n', dest='stationName', action='append',
+                    default=None, help='DEBUG: Set station manually')
+parser.add_argument('--systemname', '-N', dest='systemName', action='append',
+                    default=None, help='DEBUG: Set system manually')
+parser.add_argument('--id', '-i', type=int, dest='id', action='append',
+                    help='DEBUG: Update station with this id')
 parser.add_argument('--version', '-v', action='version',
                     version=tceRelayVersion)
                     
@@ -66,6 +72,9 @@ maxAge = args.maxAge
 tcePath = args.tcePath
 fromTce = args.fromTce
 fetchOlder = args.fetchOlder
+onlyStationNames = args.stationName
+onlySystemNames = args.systemName
+updateById = args.id
 
 def getMyPath(filename=None):
     if getattr(sys, 'frozen', False):
@@ -207,7 +216,14 @@ def getJsonRequest():
             # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
             if fetchOlder:
                 t=0
-            jsonData["knownMarkets"].append({"id":stationId, "t":t})
+            if ((onlyStationNames == None or marketName in onlyStationNames) and 
+                (onlySystemNames == None or starName in onlySystemNames) and
+                (updateById == None or stationId in updateById)):
+                jsonData["knownMarkets"].append({"id":stationId, "t":t})
+            else:
+                if not fromTce:
+                    print("Skipping market because of command line params:", marketName, starName, stationId)
+                
         else:
             if not fromTce:
                 print(marketName, starName, stationId, "ID not found!!!!!!!!")
