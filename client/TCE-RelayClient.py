@@ -55,6 +55,8 @@ parser.add_argument('--max-age', dest='maxAge', type=int, action='store',
                     default=14, help='Max age for the prices in days (defaults to 14)')
 parser.add_argument('--tce-path', dest='tcePath', action='store',
                     default="c:/TCE", help='Path to TCE (defaults to c:/TCE)')
+parser.add_argument('--fetch-older', '-o', dest='fetchOlder', action='store_const',
+                    const=True, default=False, help='Testing only: Even fetch prices that are older than your local DB')
 parser.add_argument('--version', '-v', action='version',
                     version=tceRelayVersion)
                     
@@ -63,6 +65,7 @@ args = parser.parse_args()
 maxAge = args.maxAge
 tcePath = args.tcePath
 fromTce = args.fromTce
+fetchOlder = args.fetchOlder
 
 def getMyPath(filename=None):
     if getattr(sys, 'frozen', False):
@@ -202,6 +205,8 @@ def getJsonRequest():
             except OverflowError:
                 t=0
             # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
+            if fetchOlder:
+                t=0
             jsonData["knownMarkets"].append({"id":stationId, "t":t})
         else:
             if not fromTce:
