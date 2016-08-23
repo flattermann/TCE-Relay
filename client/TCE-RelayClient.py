@@ -51,7 +51,7 @@ parser = argparse.ArgumentParser(description='TCE-Relay Client for Elite Dangero
 
 parser.add_argument('--from-tce', dest='fromTce', action='store_const',
                     const=True, default=False, help='Set by TCE Launcher to get clean output')
-parser.add_argument('--max-age', dest='maxAge', type=int, action='store',
+parser.add_argument('--max-age', '-d', dest='maxAge', type=int, action='store',
                     default=14, help='Max age for the prices in days (defaults to 14)')
 parser.add_argument('--tce-path', dest='tcePath', action='store',
                     default="c:/TCE", help='Path to TCE (defaults to c:/TCE)')
