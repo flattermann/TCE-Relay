@@ -1,3 +1,5 @@
+#!/usr/local/bin/python
+# -*- coding: utf-8 -*-
 import zlib
 import zmq
 import simplejson
@@ -52,6 +54,8 @@ __excludedSoftwares     = [
 
 # Auth ALL software except excluded
 __authorisedByDefault = True
+
+__verbose = False
 
 db = MySQLDatabase(config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
 
@@ -146,19 +150,22 @@ def echoLog(__str):
         f.write('<style type="text/css">html { white-space: pre; font-family: Courier New,Courier,Lucida Sans Typewriter,Lucida Typewriter,monospace; }</style>')
         f.close()
 
-    if (__oldTime == False) or (__oldTime != date('%H:%M:%S')):
-        __oldTime = date('%H:%M:%S')
-        __str = str(__oldTime)  + ' | ' + str(__str)
-    else:
-        __str = '        '  + ' | ' + str(__str)
+    try:
+        if (__oldTime == False) or (__oldTime != date('%H:%M:%S')):
+            __oldTime = date('%H:%M:%S')
+            __str = str(__oldTime)  + ' | ' + __str
+        else:
+            __str = '        '  + ' | ' + __str
         
-    print __str
-    sys.stdout.flush()
+        print __str
+        sys.stdout.flush()
 
-    if __logVerboseFile != False:
-        f = open(__logVerboseFileParsed, 'a')
-        f.write(__str + '\n')
-        f.close()
+        if __logVerboseFile != False:
+            f = open(__logVerboseFileParsed, 'a')
+            f.write(__str + '\n')
+            f.close()
+    except UnicodeEncodeError:
+        echoLog("UnicodeEncodeError")
     
 
 def echoLogJSON(__json):
@@ -262,25 +269,26 @@ def main():
                                 __excluded = True
                         
                             echoLog('    - Software: ' + __json['header']['softwareName'] + ' / ' + __json['header']['softwareVersion'])
-                            echoLog('        - ' + 'AUTHORISED' if (__authorised == True) else
-                                                        ('EXCLUDED' if (__excluded == True) else 'UNAUTHORISED')
-                            )
+#                            echoLog('        - ' + 'AUTHORISED' if (__authorised == True) else
+#                                                        ('EXCLUDED' if (__excluded == True) else 'UNAUTHORISED')
+#                            )
                             
                             if __authorised == True and __excluded == False:
                                 # Do what you want with the data...
                                 # Have fun !
                                 
                                 # For example
+                                stationId = getStationId(__json['message']['systemName'], __json['message']['stationName'])
+                                timestamp = dateutil.parser.parse(__json['message']['timestamp'])
+                                unixtime = time.mktime(timestamp.timetuple())
                                 echoLog('    - Timestamp: ' + __json['message']['timestamp'])
-                                echoLog('    - Uploader ID: ' + __json['header']['uploaderID'])
                                 echoLog('        - System Name: ' + __json['message']['systemName'])
                                 echoLog('        - Station Name: ' + __json['message']['stationName'])
                                 echoLog('        - Commodities: ' + str(len(__json['message']['commodities'])))
-                                stationId = getStationId(__json['message']['systemName'], __json['message']['stationName'])
                                 echoLog('        - Station ID: ' + str(stationId))
-                                timestamp = dateutil.parser.parse(__json['message']['timestamp'])
-                                unixtime = time.mktime(timestamp.timetuple())
-                                echoLog('        - Unixtime ' + str(unixtime))
+                                if __verbose:
+                                    echoLog('    - Uploader ID: ' + __json['header']['uploaderID'])
+                                    echoLog('        - Unixtime ' + str(unixtime))
                                 if stationId >= 0:
                                     with db.atomic():
                                         for __commodity in __json['message']['commodities']:
@@ -293,15 +301,18 @@ def main():
 #                                            echoLog('                - Demand: ' + str(__commodity['demand'])
 #                                                + ((' (' + __commodity['demandLevel'] + ')') if 'demandLevel' in __commodity else '')
 #                                            )
-                                            tradegoodId=getTceTradegoodId(__commodity['name'])
+                                            commodityName=__commodity['name'];
+                                            tradegoodId=getTceTradegoodId(commodityName)
 #                                            echoLog('                - TradegoodId: ' + str(tradegoodId))
-                                            echoLog('                - Name: ' + __commodity['name'] + ", " + str(tradegoodId))
+                                            if __verbose or tradegoodId < 0:
+                                                echoLog('                - Name: ' + commodityName + ", " + str(tradegoodId))
                                             if tradegoodId >= 0:
                                                 price, created = CommodityPrice.get_or_create(stationId=stationId, tradegoodId=tradegoodId)
-                                                if created:
-                                                    echoLog('                --> Creating entry')
-                                                else:
-                                                    echoLog('                --> Updating entry')
+                                                if __verbose:
+                                                    if created:
+                                                        echoLog('                --> Creating entry')
+                                                    else:
+                                                        echoLog('                --> Updating entry')
                                                 price.supply = __commodity['supply']
                                                 price.buyPrice = __commodity['buyPrice']
                                                 price.sellPrice = __commodity['sellPrice']
