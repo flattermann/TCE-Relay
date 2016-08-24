@@ -177,7 +177,16 @@ def echoLogJSON(__json):
         f = open(__logJSONFileParsed, 'a')
         f.write(str(__json) + '\n')
         f.close()
-        
+
+fixedNames = {"Animalmeat":"Animal Meat", 
+                "Low Temperature Diamond":"Low Temperature Diamonds",
+                "Skimer Components":"Skimmer Components"}
+
+def getFixedName(commodityName):
+    try:
+        return fixedNames[commodityName]
+    except KeyError:
+        return commodityName
 
 def main():
     echoLog('Starting EDDN Subscriber')
@@ -301,7 +310,8 @@ def main():
 #                                            echoLog('                - Demand: ' + str(__commodity['demand'])
 #                                                + ((' (' + __commodity['demandLevel'] + ')') if 'demandLevel' in __commodity else '')
 #                                            )
-                                            commodityName=__commodity['name'];
+                                            commodityName = __commodity['name'];
+                                            commodityName = getFixedName(commodityName)
                                             tradegoodId=getTceTradegoodId(commodityName)
 #                                            echoLog('                - TradegoodId: ' + str(tradegoodId))
                                             if __verbose or tradegoodId < 0:
@@ -323,7 +333,7 @@ def main():
                             del __authorised, __excluded
                             
                             echoLog('')
-                            echoLog('')
+#                            echoLog('')
                         
                         del __converted
                 else:
