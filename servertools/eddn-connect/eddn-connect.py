@@ -170,7 +170,7 @@ def main():
                             
                             if __authorisedByDefault:
                                 __authorised = True
-                            else
+                            else:
                                 __authorised = False
                             __excluded   = False
                             
