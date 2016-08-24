@@ -2,6 +2,9 @@ import zlib
 import zmq
 import simplejson
 import sys, os, datetime, time
+import config
+import peewee
+from peewee import *
 
 """ 
 Based on https://github.com/jamesremuscat/EDDN
@@ -43,6 +46,24 @@ __excludedSoftwares     = [
 
 # Auth ALL software except excluded
 __authorisedByDefault = True
+
+db = MySQLDatabase(config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
+
+class CommodityPrice(peewee.Model):
+    id = PrimaryKeyField()
+    stationId = peewee.IntegerField(index=True)
+    tradegoodId = peewee.IntegerField(index=True)
+    supply = peewee.IntegerField(default=0)
+    buyPrice = peewee.IntegerField(default=0)
+    sellPrice = peewee.IntegerField(default=0)
+    demand = peewee.IntegerField(default=0)
+    collectedAt = peewee.IntegerField(default=0)
+
+    class Meta:
+        database = db
+        indexed = (
+            (('stationId', 'tradegoodId'), True)
+        )
 
 """
  "  Start
