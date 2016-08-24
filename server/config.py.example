@@ -1,2 +1,6 @@
 # rename to config.py and enter your credentials
 mysql = {"db":'tcerelay', "user":'tcerelay', "pw":'supersecret'}
+# Only process the first n markets of the request
+marketRequestLimit = 5000
+# Limit answer to n markets max (0 to disable limit)
+marketResponseLimit = 2500

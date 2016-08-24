@@ -79,7 +79,7 @@ def show():
     priceData = {}
     countPrices = 0
     # Limit to 1000 Markets
-    for market in knownMarkets[:1000]:
+    for market in knownMarkets[:config.marketRequestLimit]:
         curStationPrices = []
         marketDate=0
         for price in CommodityPrice.select().where(CommodityPrice.stationId == market["id"], CommodityPrice.collectedAt > collectedAtMin):
@@ -94,6 +94,8 @@ def show():
             countPrices += 1
         if len(curStationPrices)>0:
             priceData[market["id"]]=curStationPrices
+        if config.marketResponseLimit > 0 and len(priceData) > config.marketResponseLimit:
+            break
 
     t2 = time.clock()
 
