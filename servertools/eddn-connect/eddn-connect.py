@@ -33,8 +33,8 @@ __debugEDDN             = False;
 __logVerboseFile        = False
 
 # Set to False if you do not want JSON logging
-__logJSONFile           = scriptDir + '/Logs_JSON_EDDN_%DATE%.log'
-#__logJSONFile           = False
+#__logJSONFile           = scriptDir + '/Logs_JSON_EDDN_%DATE%.log'
+__logJSONFile           = False
 
 # A sample list of authorised softwares
 __authorisedSoftwares   = [
