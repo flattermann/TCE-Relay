@@ -5,3 +5,4 @@ server/config.pyc
 servertools/*/config.pyc
 servertools/*/config.py
 servertools/eddb-import/*.csv
+servertools/eddn-connect/*.log

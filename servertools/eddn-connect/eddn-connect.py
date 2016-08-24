@@ -4,11 +4,17 @@ import simplejson
 import sys, os, datetime, time
 import config
 import peewee
+import sqlite3
 from peewee import *
+import re
+import dateutil.parser
 
 """ 
 Based on https://github.com/jamesremuscat/EDDN
 """
+
+scriptDir = os.path.dirname(os.path.realpath(__file__))
+
 
 """
  "  Configuration
@@ -21,11 +27,11 @@ __timeoutEDDN           = 60000 # 1 minut
 __debugEDDN             = False;
 
 # Set to False if you do not want verbose logging
-__logVerboseFile        = os.path.dirname(__file__) + '/Logs_Verbose_EDDN_%DATE%.htm'
-#__logVerboseFile        = False
+#__logVerboseFile        = scriptDir + '/Logs_Verbose_EDDN_%DATE%.htm'
+__logVerboseFile        = False
 
 # Set to False if you do not want JSON logging
-__logJSONFile           = os.path.dirname(__file__) + '/Logs_JSON_EDDN_%DATE%.log'
+__logJSONFile           = scriptDir + '/Logs_JSON_EDDN_%DATE%.log'
 #__logJSONFile           = False
 
 # A sample list of authorised softwares
@@ -64,6 +70,61 @@ class CommodityPrice(peewee.Model):
         indexed = (
             (('stationId', 'tradegoodId'), True)
         )
+
+connResources = sqlite3.connect(scriptDir+"/Resources.db")
+connResources.row_factory = sqlite3.Row
+
+connTceRelayClient = sqlite3.connect(scriptDir+"/TCE-RelayClient.db")
+connTceRelayClient.row_factory = sqlite3.Row
+
+stationIdCache = {}
+tradegoodCache = {}
+missingTradegoodMappings = {}
+
+def getStationId(starName, marketName):
+    global connTceRelayClient
+    key=starName+"###"+marketName
+    try:
+        val = stationIdCache[key]
+    except KeyError:
+        c = connTceRelayClient.cursor()
+    
+        c.execute("SELECT stationId FROM stationIdMappings WHERE stationName=? AND systemName=?", (marketName.upper(), starName.upper()))
+        result = c.fetchone()
+
+        if result != None:
+            val = result["stationId"]
+        else:
+            val = -1
+        
+        stationIdCache[key] = val
+    return val
+
+def getTceTradegoodId(tradegoodName):
+    global connResources
+    val = -1;
+    try:
+        val=tradegoodCache[tradegoodName];
+    except KeyError:
+        c = connResources.cursor()
+        c.execute("SELECT id from public_Goods WHERE Tradegood LIKE ?", (tradegoodName, ))
+        result = c.fetchone()
+        if (result != None):
+            val=result["id"]
+            tradegoodCache[tradegoodName]=val
+    if val < 0:
+        addMissingTradegoodMapping(tradegoodName)
+    return val;
+
+def addMissingTradegoodMapping(name):
+    global missingTradegoodMappings
+    try:
+        val=missingTradegoodMappings[name]
+        val += 1
+    except KeyError:
+        val = 1
+    missingTradegoodMappings[name] = val
+
 
 """
  "  Start
@@ -215,19 +276,39 @@ def main():
                                 echoLog('        - System Name: ' + __json['message']['systemName'])
                                 echoLog('        - Station Name: ' + __json['message']['stationName'])
                                 echoLog('        - Commodities: ' + str(len(__json['message']['commodities'])))
+                                stationId = getStationId(__json['message']['systemName'], __json['message']['stationName'])
+                                echoLog('        - Station ID: ' + str(stationId))
+                                timestamp = dateutil.parser.parse(__json['message']['timestamp'])
+                                unixtime = time.mktime(timestamp.timetuple())
+                                echoLog('        - Unixtime ' + str(unixtime))
+                                if stationId >= 0:
+                                    with db.atomic():
+                                        for __commodity in __json['message']['commodities']:
+#                                            echoLog('            - Name: ' + __commodity['name'])
+#                                                echoLog('                - Buy Price: ' + str(__commodity['buyPrice']))
+#                                            echoLog('                - Supply: ' + str(__commodity['supply']) 
+#                                                + ((' (' + __commodity['supplyLevel'] + ')') if 'supplyLevel' in __commodity else '')
+#                                            )
+#                                            echoLog('                - Sell Price: ' + str(__commodity['sellPrice']))
+#                                            echoLog('                - Demand: ' + str(__commodity['demand'])
+#                                                + ((' (' + __commodity['demandLevel'] + ')') if 'demandLevel' in __commodity else '')
+#                                            )
+                                            tradegoodId=getTceTradegoodId(__commodity['name'])
+#                                            echoLog('                - TradegoodId: ' + str(tradegoodId))
+                                            echoLog('                - Name: ' + __commodity['name'] + ", " + str(tradegoodId))
+                                            if tradegoodId >= 0:
+                                                price, created = CommodityPrice.get_or_create(stationId=stationId, tradegoodId=tradegoodId)
+                                                if created:
+                                                    echoLog('                --> Creating entry')
+                                                else:
+                                                    echoLog('                --> Updating entry')
+                                                price.supply = __commodity['supply']
+                                                price.buyPrice = __commodity['buyPrice']
+                                                price.sellPrice = __commodity['sellPrice']
+                                                price.demand = __commodity['demand']
+                                                price.collectedAt = unixtime
+                                                price.save()
 
-                                # for __commodity in __json['message']['commodities']:
-                                    # echoLog('            - Name: ' + __commodity['name'])
-                                    # echoLog('                - Buy Price: ' + str(__commodity['buyPrice']))
-                                    # echoLog('                - Supply: ' + str(__commodity['supply']) 
-                                        # + ((' (' + __commodity['supplyLevel'] + ')') if 'supplyLevel' in __commodity else '')
-                                    # )
-                                    # echoLog('                - Sell Price: ' + str(__commodity['sellPrice']))
-                                    # echoLog('                - Demand: ' + str(__commodity['demand'])
-                                        # + ((' (' + __commodity['demandLevel'] + ')') if 'demandLevel' in __commodity else '')
-                                    # )
-                                # End example
-                                
                             del __authorised, __excluded
                             
                             echoLog('')
