@@ -328,13 +328,15 @@ def main():
                                 # Have fun !
                                 
                                 # For example
-                                stationId = getStationId(__json['message']['systemName'], __json['message']['stationName'])
-                                timestamp = dateutil.parser.parse(__json['message']['timestamp'])
-                                unixtime = calendar.timegm(timestamp.timetuple())
                                 echoLog('    - Timestamp: ' + __json['message']['timestamp'])
                                 echoLog('        - System Name: ' + __json['message']['systemName'])
                                 echoLog('        - Station Name: ' + __json['message']['stationName'])
                                 echoLog('        - Commodities: ' + str(len(__json['message']['commodities'])))
+
+                                stationId = getStationId(__json['message']['systemName'], __json['message']['stationName'])
+                                timestamp = dateutil.parser.parse(__json['message']['timestamp'])
+                                unixtime = calendar.timegm(timestamp.timetuple())
+
                                 echoLog('        - Station ID: ' + str(stationId))
                                 if __verbose:
                                     echoLog('    - Uploader ID: ' + __json['header']['uploaderID'])
