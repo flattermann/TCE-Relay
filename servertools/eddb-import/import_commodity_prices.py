@@ -103,7 +103,7 @@ updateCount = 0
 updateCountSuccess = 0
 
 # db.autocommit(False)
-#c = db.cursor()
+c = db.cursor()
 
 # c.execute("DROP TABLE IF EXISTS commoditypriceTemp")
 # c.execute("CREATE TABLE commoditypriceTemp LIKE commodityprice")
@@ -111,7 +111,6 @@ updateCountSuccess = 0
 db.connect()
 
 list = []
-countUpdated = 0
 for row in listingsCsv:
     rowCount += 1
     if len(list) == 1000:
@@ -141,7 +140,6 @@ for row in listingsCsv:
 
     price, created = CommodityPrice.get_or_create(stationId=stationId, tradegoodId=tradegoodId)
     if price.collectedAt < collectedAt:
-        countUpdated += 1
         # Add update to queue
         price.supply = supply
         price.buyPrice = buyPrice
@@ -166,5 +164,5 @@ if (len(list) > 0):
 
 t2 = timeit.default_timer()
 print ("Import took", t2-t1, "seconds")
-print ("Imported", countUpdated, "prices")
+
 print missingCommodityMappings
