@@ -1,12 +1,12 @@
 # TCE-Relay
-Updates prices in TCE from EDDB
+Updates prices in TCE from EDDB/EDDN
 
 ### What is it
 TCE-Relay is a helper tool for the TCE MK II, the Trading Computer Extension for Elite Dangerous.
 
 https://forums.frontier.co.uk/showthread.php/223056-RELEASE-Trade-Computer-Extension-Mk-II
 
-It's a utility to update your TCE market prices to the EDDB values.
+It's a utility to update your TCE market prices to the EDDB/EDDN values.
 You can update all known stations at once and only older prices will be overwritten.
 
 ### Installation
@@ -19,6 +19,7 @@ If you start from command line, you'll get more debug output.
 
 ### Command Line arguments
 ```
+--help, -h		show all command line parameters
 --tce-path		path to TCE (defaults to c:/TCE)
 --max-age		Max age for the prices in days
 --from-tce		is set by TCE if ran from TCE launcher
@@ -42,10 +43,10 @@ Open a command console (cmd.exe) and run:
 	python.exe setup.py build
 ```
 
-### License ###
+### License
 TCE-Relay is licensed GPL3.
 
-### Improvements ###
+### Improvements
 This is actually my **first Python script ever**. There's probably a lot of room for code improvements and performance tweaks.
 
 Feel free to improve the code and make a pull request. I'm happy to include your optimizations!
