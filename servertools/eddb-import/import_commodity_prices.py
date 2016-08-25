@@ -4,8 +4,6 @@ import MySQLdb
 import config
 import os
 import sqlite3
-import peewee
-from peewee import *
 import json
 
 # Import EDDB data to server DB
@@ -19,22 +17,6 @@ t1 = timeit.default_timer()
 
 db = MySQLdb.connect(db=config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
 
-class CommodityPrice(peewee.Model):
-    id = PrimaryKeyField()
-    stationId = peewee.IntegerField(index=True)
-    tradegoodId = peewee.IntegerField(index=True)
-    supply = peewee.IntegerField(default=0)
-    buyPrice = peewee.IntegerField(default=0)
-    sellPrice = peewee.IntegerField(default=0)
-    demand = peewee.IntegerField(default=0)
-    collectedAt = peewee.IntegerField(default=0)
-
-    class Meta:
-        database = db
-        indexed = (
-            (('stationId', 'tradegoodId'), True)
-        )
-        
 # These are global
 commodities = json.load(open(scriptDir+'/commodities.json'))
 listingsCsv = csv.DictReader(open(scriptDir+'/listings.csv'))
@@ -54,7 +36,7 @@ def getCommodityById(commodityId):
         for commodity in commodities:
             commodityCache[commodity["id"]] = commodity
         t2 = timeit.default_timer()
-        print ("Finished... Commodity caching took", (t2-t1), "Seconds")
+        print "Finished... Commodity caching took {} Seconds".format(t2-t1)
     return commodityCache[int(commodityId)]
 
 def getCommodityNameFromId(commodityId):
@@ -102,27 +84,36 @@ rowCount = 0
 updateCount = 0
 updateCountSuccess = 0
 
-# db.autocommit(False)
+db.autocommit(False)
 c = db.cursor()
 
-# c.execute("DROP TABLE IF EXISTS commoditypriceTemp")
-# c.execute("CREATE TABLE commoditypriceTemp LIKE commodityprice")
-
-db.connect()
-
 list = []
+
+countUpdated=0
 for row in listingsCsv:
     rowCount += 1
-    if len(list) == 1000:
- #       c.executemany("""INSERT INTO commoditypriceTemp (stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt) VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-#            list)
-        with db.atomic():
-            for price in list:
-                price.save()
-            list = []
     if (rowCount % 50000 == 0):
         t2 = timeit.default_timer()
-        print rowCount, "rows read in", (t2-t1), "seconds"
+        print "{} rows read in {} seconds".format(rowCount, t2-t1)
+    if len(list) == 50000:
+#        print "Saving now " +str(len(list))
+        for priceInQueue in list:
+            stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt = priceInQueue
+
+            c.execute("SELECT collectedAt FROM commodityprice WHERE stationId=%s AND tradegoodId=%s", (stationId, tradegoodId))
+            result = c.fetchone()
+            if result != None:
+                oldCollectedAt = result[0]
+            else:
+                oldCollectedAt = 0
+                if oldCollectedAt < collectedAt:
+                    countUpdated += 1
+                    c.execute("INSERT INTO commodityprice (stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        priceInQueue)
+
+        list = []
+        db.commit()
+        print "Saved {} prices".format(countUpdated)
     if (config.maxRows > 0 and rowCount >= config.maxRows):
         break        
     stationId = row["station_id"]
@@ -138,31 +129,25 @@ for row in listingsCsv:
 #            print ("Unable to map commodityId", commodityId, getCommodityNameFromId(commodityId))
         continue
 
-    price, created = CommodityPrice.get_or_create(stationId=stationId, tradegoodId=tradegoodId)
-    if price.collectedAt < collectedAt:
-        # Add update to queue
-        price.supply = supply
-        price.buyPrice = buyPrice
-        price.sellPrice = sellPrice
-        price.demand = demand
-        price.collectedAt = collectedAt
-        list.append(price)
+    list.append((stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt))
 
 if (len(list) > 0):
-    with db.atomic():
-        for price in list:
-            price.save()
-#    c.executemany("""INSERT INTO commoditypriceTemp (stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt) VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-#            list)
+    for priceInQueue in list:
+        stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt = priceInQueue
 
-    # db.commit()
-# except:
-    # db.rollback()
+        c.execute("SELECT collectedAt FROM commodityprice WHERE stationId=%s AND tradegoodId=%s", (stationId, tradegoodId))
+        result = c.fetchone()
+        if result != None:
+            oldCollectedAt = result[0]
+        else:
+            oldCollectedAt = 0
+            if oldCollectedAt < collectedAt:
+                countUpdated += 1
+                c.execute("INSERT INTO commodityprice (stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    priceInQueue)
 
-# c.execute("DROP TABLE IF EXISTS commoditypriceOld")
-# c.execute("RENAME TABLE commodityprice TO commoditypriceOld, commoditypriceTemp TO commodityprice")
 
 t2 = timeit.default_timer()
-print ("Import took", t2-t1, "seconds")
-
+print "Import took {}seconds".format(t2-t1)
+print "Updated {} prices".format(countUpdated)
 print missingCommodityMappings
