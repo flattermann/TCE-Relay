@@ -113,7 +113,7 @@ for row in listingsCsv:
 
         list = []
         db.commit()
-        print "Saved {} prices".format(countUpdated)
+        #print "Saved {} prices".format(countUpdated)
     if (config.maxRows > 0 and rowCount >= config.maxRows):
         break        
     stationId = row["station_id"]
