@@ -58,15 +58,47 @@ __authorisedByDefault = True
 
 __verbose = False
 
-__fixedNames = {"Animalmeat" : "Animal Meat", 
-                "Low Temperature Diamond" : "Low Temperature Diamonds",
-                "Skimer Components" : "Skimmer Components",
-                "Power Grid Assembly": "Energy Grid Assembly",
-                "C M M Composite": "CMM Composite",
-                "H N Shock Mount": "HN Shock Mount",
-                "Methanol Monohydrate Crystals": "Methanol Monohydrate",
-                "Diagnostic Sensor":"Hardware Diagnostic Sensor",
-            }
+__fixedNames = {
+    ## From EDMC/companion.py
+    'Agricultural Medicines'             : 'Agri-Medicines',
+    'Ai Relics'                          : 'AI Relics',
+    'Animalmeat'                         : 'Animal Meat',
+    'Atmospheric Extractors'             : 'Atmospheric Processors',
+    'Auto Fabricators'                   : 'Auto-Fabricators',
+    'Basic Narcotics'                    : 'Narcotics',
+    'Bio Reducing Lichen'                : 'Bioreducing Lichen',
+    'C M M Composite'                    : 'CMM Composite',
+    'Comercial Samples'                  : 'Commercial Samples',
+    'Diagnostic Sensor'                  : 'Hardware Diagnostic Sensor',
+    'Drones'                             : 'Limpet',
+    'Encripted Data Storage'             : 'Encrypted Data Storage',
+    'H N Shock Mount'                    : 'HN Shock Mount',
+    'Hafnium178'                         : 'Hafnium 178',
+    'Hazardous Environment Suits'        : 'H.E. Suits',
+    'Heliostatic Furnaces'               : 'Microbial Furnaces',
+    'Low Temperature Diamond'            : 'Low Temperature Diamonds',
+    'Marine Supplies'                    : 'Marine Equipment',
+    'Meta Alloys'                        : 'Meta-Alloys',
+    'Methanol Monohydrate Crystals'      : 'Methanol Monohydrate',
+    'Mu Tom Imager'                      : 'Muon Imager',
+    'Non Lethal Weapons'                 : 'Non-Lethal Weapons',
+    'Power Grid Assembly'                : 'Energy Grid Assembly',
+    'Power Transfer Conduits'            : 'Power Transfer Bus',
+    'S A P8 Core Container'              : 'SAP 8 Core Container',	# Not seen in E:D 1.4 or later?
+    'Skimer Components'                  : 'Skimmer Components',
+    'Terrain Enrichment Systems'         : 'Land Enrichment Systems',
+    'Trinkets Of Fortune'                : 'Trinkets Of Hidden Fortune',
+    'Unknown Artifact'                   : 'Unknown Artefact',
+    'Unknown Artifact2'                  : 'Unknown Probe',	# untested
+    'U S S Cargo Ancient Artefact'       : 'Ancient Artefact',
+    'U S S Cargo Experimental Chemicals' : 'Experimental Chemicals',
+    'U S S Cargo Military Plans'         : 'Military Plans',
+    'U S S Cargo Prototype Tech'         : 'Prototype Tech',
+    'U S S Cargo Rebel Transmissions'    : 'Rebel Transmissions',
+    'U S S Cargo Technical Blueprints'   : 'Technical Blueprints',
+    'U S S Cargo Trade Data'             : 'Trade Data',
+    'Wreckage Components'                : 'Salvageable Wreckage',
+    }
 
 
 db = MySQLDatabase(config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
