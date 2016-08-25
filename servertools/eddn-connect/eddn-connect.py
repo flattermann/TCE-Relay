@@ -10,6 +10,7 @@ import sqlite3
 from peewee import *
 import re
 import dateutil.parser
+import calendar
 
 """ 
 Based on https://github.com/jamesremuscat/EDDN
@@ -22,8 +23,8 @@ scriptDir = os.path.dirname(os.path.realpath(__file__))
  "  Configuration
 """
 __relayEDDN             = 'tcp://eddn-relay.elite-markets.net:9500'
-#__timeoutEDDN           = 600000 # 10 minuts
-__timeoutEDDN           = 60000 # 1 minut
+__timeoutEDDN           = 600000 # 10 minuts
+#__timeoutEDDN           = 60000 # 1 minut
 
 # Set False to listen to production stream; True to listen to debug stream
 __debugEDDN             = False;
@@ -56,6 +57,17 @@ __excludedSoftwares     = [
 __authorisedByDefault = True
 
 __verbose = False
+
+__fixedNames = {"Animalmeat" : "Animal Meat", 
+                "Low Temperature Diamond" : "Low Temperature Diamonds",
+                "Skimer Components" : "Skimmer Components",
+                "Power Grid Assembly": "Energy Grid Assembly",
+                "C M M Composite": "CMM Composite",
+                "H N Shock Mount": "HN Shock Mount",
+                "Methanol Monohydrate Crystals": "Methanol Monohydrate",
+                "Diagnostic Sensor":"Hardware Diagnostic Sensor",
+            }
+
 
 db = MySQLDatabase(config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
 
@@ -178,13 +190,10 @@ def echoLogJSON(__json):
         f.write(str(__json) + '\n')
         f.close()
 
-fixedNames = {"Animalmeat":"Animal Meat", 
-                "Low Temperature Diamond":"Low Temperature Diamonds",
-                "Skimer Components":"Skimmer Components"}
-
 def getFixedName(commodityName):
+    global __fixedNames
     try:
-        return fixedNames[commodityName]
+        return __fixedNames[commodityName]
     except KeyError:
         return commodityName
 
@@ -289,7 +298,7 @@ def main():
                                 # For example
                                 stationId = getStationId(__json['message']['systemName'], __json['message']['stationName'])
                                 timestamp = dateutil.parser.parse(__json['message']['timestamp'])
-                                unixtime = time.mktime(timestamp.timetuple())
+                                unixtime = calendar.timegm(timestamp.timetuple())
                                 echoLog('    - Timestamp: ' + __json['message']['timestamp'])
                                 echoLog('        - System Name: ' + __json['message']['systemName'])
                                 echoLog('        - Station Name: ' + __json['message']['stationName'])
