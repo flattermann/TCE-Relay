@@ -108,6 +108,8 @@ updateCountSuccess = 0
 # c.execute("DROP TABLE IF EXISTS commoditypriceTemp")
 # c.execute("CREATE TABLE commoditypriceTemp LIKE commodityprice")
 
+db.connect()
+
 list = []
 countUpdated = 0
 for row in listingsCsv:
