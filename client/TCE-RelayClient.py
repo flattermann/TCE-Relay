@@ -65,6 +65,8 @@ parser.add_argument('--id', '-i', type=int, dest='id', action='append',
                     help='DEBUG: Update station with this id')
 parser.add_argument('--add-market', '-a', metavar='STATIONNAME@SYSTEMNAME', dest='addMarket', action='append',
                     default=None, help='ALPHA: Add market with this name (overrides -i)')
+parser.add_argument('--add-markets-near-system', '-A', metavar='SYSTEMNAME,LY,LS,PLANETARY', dest='addMarketsNearSystem', action='append',
+                    default=None, help='ALPHA: Add markets near system SYSTEMNAME, LY=max distance, LS=max star distance, PLANETARY=Y/N, e.g. -A "LTT 9810,50,1000,N" (overrides -i)')
 parser.add_argument('--offline', dest='offlineMode', action='store_const',
                     const=True, default=False, help='Offline mode (useful for -a)')
 parser.add_argument('--version', '-v', action='version',
@@ -82,6 +84,7 @@ fetchOlder = args.fetchOlder
 onlyStationNames = args.stationName
 onlySystemNames = args.systemName
 addMarketList = args.addMarket
+addMarketsNearSystemList = args.addMarketsNearSystem
 updateById = args.id
 
 def getMyPath(filename=None):
@@ -421,10 +424,26 @@ def addMarkets(list):
                 updateById.append(stationId)
             else:
                 print ("  No matching market found in UMarkets")
+
+def getStarByName(name):
+    global connStars
+    name = name.upper()
+    c = connStars.cursor()
+    c.execute("SELECT * from Public_Stars WHERE StarName=?", (name,))
+    return c.fetchone()
     
+def addMarketsNearSystem(list):
+    for baseSystemFull in list:
+        systemName, distanceLY, distanceLS, planetary = baseSystemFull.split(',')
+        star = getStarByName(systemName)
+        print (star)
+
 t1 = timeit.default_timer()
 
-if addMarketList != None and len(addMarketList) > 0:
+if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
+    updateById = []
+    addMarketsNearSystem(addMarketsNearSystemList)
+elif addMarketList != None and len(addMarketList) > 0:
     updateById = []
     addMarkets(addMarketList)
 
