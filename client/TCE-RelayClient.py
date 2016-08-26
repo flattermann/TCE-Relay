@@ -227,7 +227,7 @@ def getJsonRequest():
                 
         else:
             if not fromTce:
-                print(marketName, starName, stationId, "ID not found!!!!!!!!")
+                print(marketName, starName, stationId, "ID not found!")
     
         # if len(jsonData["knownMarkets"]) > 50:
             # break
