@@ -46,6 +46,7 @@ import re
 
 tceRelayVersion = "0.2-beta"
 apiVersion = 2
+verbose = False
 
 parser = argparse.ArgumentParser(description='TCE-Relay Client for Elite Dangerous')
 
@@ -221,7 +222,7 @@ def getJsonRequest():
                 (updateById == None or stationId in updateById)):
                 jsonData["knownMarkets"].append({"id":stationId, "t":t})
             else:
-                if not fromTce:
+                if verbose and not fromTce:
                     print("Skipping market because of command line params:", marketName, starName, stationId)
                 
         else:
