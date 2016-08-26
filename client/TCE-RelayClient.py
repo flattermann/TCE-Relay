@@ -126,6 +126,16 @@ localMarketIdCache = {}
 stationIdCache = {}
 localMarketCache = {}
 
+def getUserMarketIdNext():
+    global connUserMarkets
+    c = connUserMarkets.cursor()
+    c.execute("SELECT (t1.ID+1) as nextId FROM public_Markets AS t1 LEFT JOIN public_Markets as t2 ON t1.ID+1 = t2.ID WHERE t2.ID IS NULL limit 1")
+    result = c.fetchone()
+    if result != None:
+        return result["nextId"]
+    else:
+        return getUserMarketIdMax()+1
+
 def getUserMarketIdMax():
     global connUserMarkets
     c = connUserMarkets.cursor()
@@ -170,7 +180,7 @@ def addUserMarket(tceDefaultMarket):
     global connUserMarkets
     tdm = tceDefaultMarket
     c = connUserMarkets.cursor()
-    nextId = getUserMarketIdMax() + 1
+    nextId = getUserMarketIdNext()
     if not fromTce:
         print ("    Adding Market", nextId, tdm["ID"])
     c.execute("INSERT INTO public_Markets ("
