@@ -105,7 +105,7 @@ def getMyPath(filename=None):
     else:
         return os.path.join(datadir, filename)
 
-tceRelayUrl='http://tcerelay.flat09.de/pricesS'
+tceRelayUrl='http://tcerelay.flat09.de/prices'
 
 # These too
 connUserMarkets = sqlite3.connect(tcePath+"/db/TCE_RMarkets.db")
