@@ -46,7 +46,6 @@ import re
 
 tceRelayVersion = "0.2-beta"
 apiVersion = 2
-verbose = False
 
 parser = argparse.ArgumentParser(description='TCE-Relay Client for Elite Dangerous')
 
@@ -66,9 +65,12 @@ parser.add_argument('--id', '-i', type=int, dest='id', action='append',
                     help='DEBUG: Update station with this id')
 parser.add_argument('--version', '-v', action='version',
                     version=tceRelayVersion)
+parser.add_argument('--verbose', dest='verbose', action='store_const',
+                    const=True, default=False, help='More debug output')
                     
 args = parser.parse_args()
 
+verbose = args.verbose
 maxAge = args.maxAge
 tcePath = args.tcePath
 fromTce = args.fromTce
