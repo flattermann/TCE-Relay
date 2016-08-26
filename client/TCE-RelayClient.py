@@ -326,7 +326,7 @@ def deletePricesForMarket(localMarketId):
 def setLocalMarketLastDate(localMarketId, collectedAt):
     global connUserMarkets
     c = connUserMarkets.cursor()
-    if not fromTce:
+    if verbose and not fromTce:
         print ("Updating LastDate for localMarketId", localMarketId, "to", collectedAt)
     # Magic date calculation :)
     collectedDate = datetime.utcfromtimestamp(collectedAt)
