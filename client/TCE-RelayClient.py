@@ -63,6 +63,10 @@ parser.add_argument('--systemname', '-N', dest='systemName', action='append',
                     default=None, help='DEBUG: Set system manually')
 parser.add_argument('--id', '-i', type=int, dest='id', action='append',
                     help='DEBUG: Update station with this id')
+parser.add_argument('--add-market', '-a', metavar='STATIONNAME@SYSTEMNAME', dest='addMarket', action='append',
+                    default=None, help='ALPHA: Add market with this name (overrides -i)')
+parser.add_argument('--offline', dest='offlineMode', action='store_const',
+                    const=True, default=False, help='Offline mode (useful for -a)')
 parser.add_argument('--version', '-v', action='version',
                     version=tceRelayVersion)
                     
@@ -74,6 +78,7 @@ fromTce = args.fromTce
 fetchOlder = args.fetchOlder
 onlyStationNames = args.stationName
 onlySystemNames = args.systemName
+addMarketList = args.addMarket
 updateById = args.id
 
 def getMyPath(filename=None):
@@ -93,19 +98,71 @@ tceRelayUrl='http://tcerelay.flat09.de/prices'
 
 # These too
 connUserMarkets = sqlite3.connect(tcePath+"/db/TCE_RMarkets.db")
+connDefaultMarkets = sqlite3.connect(tcePath+"/db/TCE_UMarkets.db")
 connPrices = sqlite3.connect(tcePath+"/db/TCE_Prices.db")
 connTceRelayClient = sqlite3.connect(getMyPath("TCE-RelayClient.db"))
 connTceRelayClientLocal = sqlite3.connect(getMyPath("TCE-RelayClient_local.db"))
+connStars = sqlite3.connect(tcePath+"/db/TCE_Stars.db")
 
 connUserMarkets.row_factory = sqlite3.Row
+connDefaultMarkets.row_factory = sqlite3.Row
 connPrices.row_factory = sqlite3.Row
 connTceRelayClient.row_factory = sqlite3.Row
 connTceRelayClientLocal.row_factory = sqlite3.Row
+connStars.row_factory = sqlite3.Row
 
 connTceRelayClientLocal.cursor().execute('CREATE TABLE IF NOT EXISTS stringStore (key TEXT, value TEXT, PRIMARY KEY(key))')
 # These too, our caches
 localMarketIdCache = {}
 stationIdCache = {}
+
+def getUserMarketIdMax():
+    global connUserMarkets
+    c = connUserMarkets.cursor()
+#	print ("Checking market", systemId, stationName)
+    c.execute("SELECT ID FROM public_Markets ORDER BY ID DESC")
+    result = c.fetchone()
+    if (result != None):
+        return result["id"]
+    else:
+        return -1
+
+def getUserMarketId(systemName, stationName):
+    global connUserMarkets
+    c = connUserMarkets.cursor()
+#	print ("Checking market", systemId, stationName)
+    c.execute("SELECT * FROM public_Markets WHERE StarName=? AND MarketName=?", (systemName, stationName))
+    result = c.fetchone()
+    if (result != None):
+        return result["id"]
+    else:
+        return -1
+
+def getDefaultMarket(systemName, stationName):
+    global connDefaultMarkets
+    c = connDefaultMarkets.cursor()
+    c.execute("SELECT * FROM public_Markets_UR WHERE StarName=? AND MarketName=?", (systemName, stationName))
+    result = c.fetchone()
+    return result
+
+def addUserMarket(tceDefaultMarket):
+    global connUserMarkets
+    c = connUserMarkets.cursor()
+    nextId = getUserMarketIdMax() + 1
+    if not fromTce:
+        print ("		Adding Market", nextId, tceDefaultMarket)
+    tdm = tceDefaultMarket
+    c.execute("INSERT INTO public_Markets ("
+        "ID, MarketName, StarID, StarName, SectorID, AllegianceID, PriEconomy, SecEconomy, DistanceStar, LastDate, LastTime, "
+        "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ) "
+        "VALUES (?" + 24*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
+        0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0))
+    return nextId
+
+def calcDistance(p1,p2):
+    return math.sqrt((p2[0] - p1[0]) ** 2 +
+                     (p2[1] - p1[1]) ** 2 +
+                     (p2[2] - p1[2]) ** 2)
 
 def getLocalDbString(key):
     global connTceRelayClientLocal
@@ -148,6 +205,8 @@ def getStationId(marketName, starName, marketId):
     try:
         val = stationIdCache[int(marketId)]
     except KeyError:
+        marketName = marketName.upper()
+        starName = starName.upper()
         c = connTceRelayClient.cursor()
     
         c.execute("SELECT stationId FROM stationIdMappings WHERE stationName=? AND systemName=?", (marketName, starName))
@@ -346,26 +405,45 @@ def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
     return True
     # print("Updating price", localMarketId, tradegoodId, supply, buyPrice, sellPrice, collectedAt)
     #print ("Local market ID", localMarketId)
-            
+
+def addMarkets(list):
+    for marketFullName in list:
+        marketName, systemName = marketFullName.split("@")
+        if getUserMarketId(systemName, marketName) < 0:
+            print ("Adding market", marketName.upper(), systemName.upper())
+            defaultMarket = getDefaultMarket(systemName, marketName)
+            if defaultMarket != None:
+                print (defaultMarket)
+                newId = addUserMarket(defaultMarket)
+                stationId = getStationId(marketName, systemName, newId)
+                updateById.append(stationId)
+            else:
+                print ("No matching market found in UMarkets")
+    
 t1 = timeit.default_timer()
 
-try:
-    jsonData = getJsonRequest()
-except:
-    showError("Unable to create request!")
-    exit(1)
+if addMarketList != None and len(addMarketList) > 0:
+    updateById = []
+    addMarkets(addMarketList)
 
-try:
-    jsonResponse = sendRequest(jsonData)
-except:
-    showError("Server unreachable!")
-    exit(2)
+if not args.offlineMode:
+    try:
+        jsonData = getJsonRequest()
+    except:
+        showError("Unable to create request!")
+        exit(1)
 
-try:
-    processJsonResponse(jsonResponse)
-except:
-    showError("Unable to parse response!")
-    exit(3)
+    try:
+        jsonResponse = sendRequest(jsonData)
+    except:
+        showError("Server unreachable!")
+        exit(2)
+
+    try:
+        processJsonResponse(jsonResponse)
+    except:
+        showError("Unable to parse response!")
+        exit(3)
     
 connUserMarkets.commit()
 connPrices.commit()
