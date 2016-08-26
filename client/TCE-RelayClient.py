@@ -63,10 +63,12 @@ parser.add_argument('--systemname', '-N', dest='systemName', action='append',
                     default=None, help='DEBUG: Set system manually')
 parser.add_argument('--id', '-i', type=int, dest='id', action='append',
                     help='DEBUG: Update station with this id')
+parser.add_argument('--local-id', '-I', type=int, dest='localId', action='append',
+                    help='DEBUG: Update station with this local id')
 parser.add_argument('--add-market', '-a', metavar='STATIONNAME@SYSTEMNAME', dest='addMarket', action='append',
                     default=None, help='ALPHA: Add market with this name (overrides -i)')
-parser.add_argument('--add-markets-near-system', '-A', metavar='SYSTEMNAME,LY,LS,PLANETARY', dest='addMarketsNearSystem', action='append',
-                    default=None, help='ALPHA: Add markets near system SYSTEMNAME, LY=max distance, LS=max star distance, PLANETARY=Y/N, e.g. -A "LTT 9810,50,1000,N" (overrides -i)')
+parser.add_argument('--add-markets-near-system', '-A', metavar='SYSTEMNAME,LY,LS,WITHPLANETARY', dest='addMarketsNearSystem', action='append',
+                    default=None, help='ALPHA: Add markets near system SYSTEMNAME, LY=max distance, LS=max star distance, WITHPLANETARY=Y/N, e.g. -A "LTT 9810,50,1000,N" (overrides -i)')
 parser.add_argument('--offline', dest='offlineMode', action='store_const',
                     const=True, default=False, help='Offline mode (useful for -a)')
 parser.add_argument('--version', '-v', action='version',
@@ -86,6 +88,7 @@ onlySystemNames = args.systemName
 addMarketList = args.addMarket
 addMarketsNearSystemList = args.addMarketsNearSystem
 updateById = args.id
+updateByLocalId = args.localId
 
 def getMyPath(filename=None):
     if getattr(sys, 'frozen', False):
@@ -261,38 +264,42 @@ def getJsonRequest():
         if fromTce: # and count % 10 == 0:
             showProgress(count, len(markets), "Preparing request")
         localMarketId=market["ID"]
-        marketName=market["MarketName"]
-        starName=market["StarName"]
-        stationId = getStationId(marketName, starName, localMarketId)
-        oldDateStr = market["LastDate"]
-        oldTimeStr = market["LastTime"]
-        oldTimeArray = oldTimeStr.split(":")
-        oldH = oldTimeArray[0]
-        oldM = oldTimeArray[1]
-        oldS = oldTimeArray[2]
-        oldDate = datetime(613, 12, 31) + timedelta(days=int(oldDateStr), hours=int(oldH), minutes=int(oldM), seconds=int(oldS))
+        if updateByLocalId == None or localMarketId in updateByLocalId:
+            marketName=market["MarketName"]
+            starName=market["StarName"]
+            stationId = getStationId(marketName, starName, localMarketId)
+            oldDateStr = market["LastDate"]
+            oldTimeStr = market["LastTime"]
+            oldTimeArray = oldTimeStr.split(":")
+            oldH = oldTimeArray[0]
+            oldM = oldTimeArray[1]
+            oldS = oldTimeArray[2]
+            oldDate = datetime(613, 12, 31) + timedelta(days=int(oldDateStr), hours=int(oldH), minutes=int(oldM), seconds=int(oldS))
 
-        if stationId >= 0:
-            try:
-                # Get UTC timestamp
-                t=int(oldDate.replace(tzinfo=timezone.utc).timestamp())
-            except OverflowError:
-                t=0
-            # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
-            if fetchOlder:
-                t=0
-            if ((onlyStationNames == None or marketName in onlyStationNames) and 
-                (onlySystemNames == None or starName in onlySystemNames) and
-                (updateById == None or stationId in updateById)):
-                jsonData["knownMarkets"].append({"id":stationId, "t":t})
+            if stationId >= 0:
+                try:
+                    # Get UTC timestamp
+                    t=int(oldDate.replace(tzinfo=timezone.utc).timestamp())
+                except OverflowError:
+                    t=0
+                # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
+                if fetchOlder:
+                    t=0
+                if ((onlyStationNames == None or marketName in onlyStationNames) and 
+                    (onlySystemNames == None or starName in onlySystemNames) and
+                    (updateById == None or stationId in updateById)):
+                    jsonData["knownMarkets"].append({"id":stationId, "t":t})
+                else:
+                    if verbose and not fromTce:
+                        print("Skipping market because of command line params:", marketName, starName, stationId)
+                    
             else:
-                if verbose and not fromTce:
-                    print("Skipping market because of command line params:", marketName, starName, stationId)
-                
+                if not fromTce:
+                    print(marketName, starName, stationId, "ID not found!")
         else:
-            if not fromTce:
-                print(marketName, starName, stationId, "ID not found!")
-    
+            if verbose and not fromTce:
+                print("Skipping market because of --local-id command line params:", marketName, starName, stationId)
+        
         # if len(jsonData["knownMarkets"]) > 50:
             # break
         # break
@@ -425,18 +432,65 @@ def addMarkets(list):
             else:
                 print ("  No matching market found in UMarkets")
 
+def getMarketsForSystem(systemId, maxStarDistance=1000, planetary=False):
+    global connDefaultMarkets
+    c = connDefaultMarkets.cursor()
+    if planetary:
+        planetarySql=""
+    else:
+        planetarySql=" AND (Type<13 OR Type>15)"
+    c.execute("SELECT * from public_Markets_UR WHERE StarID=? AND DistanceStar<=?"+planetarySql, (systemId, maxStarDistance))
+    return c.fetchall()
+
 def getStarByName(name):
     global connStars
     name = name.upper()
     c = connStars.cursor()
     c.execute("SELECT * from Public_Stars WHERE StarName=?", (name,))
     return c.fetchone()
+
+def getStarsNear(x, y, z, ly):
+    global connStars
+    c = connStars.cursor()
+    c.execute("SELECT * from Public_Stars")
+    stars = c.fetchall()
+    list = []
+    for star in stars:
+        if calcDistance((x, y, z), (star["X"], star["Y"], star["Z"])) <= ly:
+            list.append(star)
+    return list
     
 def addMarketsNearSystem(list):
     for baseSystemFull in list:
-        systemName, distanceLY, distanceLS, planetary = baseSystemFull.split(',')
-        star = getStarByName(systemName)
-        print (star)
+        baseSystemName, distanceLY, distanceLS, planetary = baseSystemFull.split(',')
+        baseSystemName = baseSystemName.upper()
+        distanceLY = int(distanceLY)
+        distanceLS = int(distanceLS)
+        if planetary in ('y', 'Y', 1):
+            planetary=True
+        else:
+            planetary=False
+        star = getStarByName(baseSystemName)
+        if star != None:
+            print ("Searching for markets near", baseSystemName, star["X"], star["Y"], star["Z"], "within", distanceLY, "LY, maxDistanceToStar", distanceLS, "LS , withPlanetary", planetary)
+            nearStars=getStarsNear(star["X"], star["Y"], star["Z"], distanceLY)
+            print (len(nearStars), "near stars found!")
+            nearMarkets = []
+            for nearStar in nearStars:
+                nearMarkets.extend(getMarketsForSystem(nearStar["ID"], distanceLS, planetary))
+            print(len(nearMarkets), "near markets found!")
+            countAdded=0
+            for nearMarket in nearMarkets:
+                marketName = nearMarket["MarketName"]
+                systemName = nearMarket["StarName"]
+                if getUserMarketId(systemName, marketName) < 0:
+                    countAdded+=1
+                    print (countAdded, "Adding market", marketName, systemName)
+                    newId = addUserMarket(nearMarket)
+                    stationId = getStationId(marketName, systemName, newId)
+                    updateById.append(stationId)
+        else:
+            print ("Star not found:", baseSystemName)
 
 t1 = timeit.default_timer()
 
