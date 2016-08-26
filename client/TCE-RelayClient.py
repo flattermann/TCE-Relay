@@ -292,16 +292,11 @@ def getJsonRequest():
             stationId = getStationId(marketName, starName, localMarketId)
             oldDateStr = market["LastDate"]
             oldTimeStr = market["LastTime"]
-            oldTimeArray = oldTimeStr.split(":")
-            oldH = oldTimeArray[0]
-            oldM = oldTimeArray[1]
-            oldS = oldTimeArray[2]
-            oldDate = datetime(613, 12, 31) + timedelta(days=int(oldDateStr), hours=int(oldH), minutes=int(oldM), seconds=int(oldS))
 
             if stationId >= 0:
                 try:
                     # Get UTC timestamp
-                    t=int(oldDate.replace(tzinfo=timezone.utc).timestamp())
+                    t=parseTceTimeToUnixtime(oldDateStr, oldTimeStr)
                 except OverflowError:
                     t=0
                 # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
@@ -415,17 +410,48 @@ def deletePricesForMarket(localMarketId):
     global connPrices
     c = connPrices.cursor()
     c.execute("DELETE FROM public_MarketPrices WHERE MarketID=?", (localMarketId, ))
+
+def parseTceTimeToUnixtime(dateInteger, timeString):
+    if verbose:
+        print ("Parsing TCE date: ", dateInteger, timeString)
+    if timeString.find("AM") >= 0 or timeString.find("PM") >= 0:
+        ret=datetime.strptime(timeString, "%I:%M:%S %p")
+    else:
+        ret=datetime.strptime(timeString, "%H:%M:%S")
+
+    # Some date magic here :)
+    ret = ret + timedelta(days=dateInteger-469703)
+    if verbose:
+        print ("Parsed:", ret)
+    unixtime = int(ret.replace(tzinfo=timezone.utc).timestamp())
+    if verbose:
+        print ("Unix time", unixtime)
+
+    return unixtime
+
+def parseUnixtimeToTceTime(unixtime):
+    # Magic date calculation :)
+    if verbose:
+        print ("Parsing unixtime to TCE:", unixtime)
+    collectedDate = datetime.utcfromtimestamp(unixtime)
+    tceBase = collectedDate - datetime(613, 12, 31)
+    if verbose:
+        print ("tceBase", tceBase)
+    newTceDate = str(int(tceBase/timedelta(days=1)))
+    if verbose:
+        print ("tceDate", newTceDate)
+    newTceTime = collectedDate.strftime("%X")
+    if verbose:
+        print ("tceTime", newTceTime)
+
+    return (newTceDate, newTceTime)
     
 def setLocalMarketLastDate(localMarketId, collectedAt):
     global connUserMarkets
     c = connUserMarkets.cursor()
     if verbose and not fromTce:
         print ("Updating LastDate for localMarketId", localMarketId, "to", collectedAt)
-    # Magic date calculation :)
-    collectedDate = datetime.utcfromtimestamp(collectedAt)
-    tceBase = collectedDate - datetime(613, 12, 31)
-    newTceDate = str(int(tceBase/timedelta(days=1)))
-    newTceTime = collectedDate.strftime("%H:%M:%S")
+    newTceDate, newTceTime = parseUnixtimeToTceTime(collectedAt)
     c.execute("UPDATE public_Markets set LastDate=?, LastTime=? WHERE id=?", (newTceDate, newTceTime, localMarketId))
     
 # Update a single price
@@ -515,6 +541,15 @@ def addMarketsNearSystem(list):
             print ("Star not found:", baseSystemName)
 
 t1 = timeit.default_timer()
+
+# ut1=parseTceTimeToUnixtime(512309, "10:00:00")
+# ut2=parseTceTimeToUnixtime(512309, "10:00:00 AM")
+# ut3=parseTceTimeToUnixtime(512309, "10:00:00 PM")
+
+# td1,tt1=parseUnixtimeToTceTime(ut1)
+# td2,tt2=parseUnixtimeToTceTime(ut2)
+# td3,tt3=parseUnixtimeToTceTime(ut3)
+# exit(1)
 
 if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
     updateById = []
