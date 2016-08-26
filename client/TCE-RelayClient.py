@@ -40,9 +40,11 @@ import requests
 from datetime import datetime, timedelta, timezone
 import argparse
 import sys
+from sys import exit
 import os
 import uuid
 import re
+# import traceback
 
 tceRelayVersion = "0.3-beta"
 apiVersion = 2
@@ -103,7 +105,7 @@ def getMyPath(filename=None):
     else:
         return os.path.join(datadir, filename)
 
-tceRelayUrl='http://tcerelay.flat09.de/prices'
+tceRelayUrl='http://tcerelay.flat09.de/pricesS'
 
 # These too
 connUserMarkets = sqlite3.connect(tcePath+"/db/TCE_RMarkets.db")
@@ -562,18 +564,21 @@ if not args.offlineMode:
     try:
         jsonData = getJsonRequest()
     except:
-        showError("Unable to create request!")
+        # showError("Unable to create request!")
+        print(traceback.format_exc())
         exit(1)
 
     try:
         jsonResponse = sendRequest(jsonData)
     except:
+        # print(traceback.format_exc())
         showError("Server unreachable!")
         exit(2)
 
     try:
         processJsonResponse(jsonResponse)
     except:
+        # print(traceback.format_exc())
         showError("Unable to parse response!")
         exit(3)
     
