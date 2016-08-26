@@ -153,7 +153,7 @@ def addUserMarket(tceDefaultMarket):
     c = connUserMarkets.cursor()
     nextId = getUserMarketIdMax() + 1
     if not fromTce:
-        print ("		Adding Market", nextId, tceDefaultMarket)
+        print ("    Adding Market", nextId, tceDefaultMarket["ID"])
     tdm = tceDefaultMarket
     c.execute("INSERT INTO public_Markets ("
         "ID, MarketName, StarID, StarName, SectorID, AllegianceID, PriEconomy, SecEconomy, DistanceStar, LastDate, LastTime, "
@@ -416,12 +416,11 @@ def addMarkets(list):
             print ("Adding market", marketName.upper(), systemName.upper())
             defaultMarket = getDefaultMarket(systemName, marketName)
             if defaultMarket != None:
-                print (defaultMarket)
                 newId = addUserMarket(defaultMarket)
                 stationId = getStationId(marketName, systemName, newId)
                 updateById.append(stationId)
             else:
-                print ("No matching market found in UMarkets")
+                print ("  No matching market found in UMarkets")
     
 t1 = timeit.default_timer()
 
