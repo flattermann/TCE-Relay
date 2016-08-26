@@ -69,9 +69,12 @@ parser.add_argument('--offline', dest='offlineMode', action='store_const',
                     const=True, default=False, help='Offline mode (useful for -a)')
 parser.add_argument('--version', '-v', action='version',
                     version=tceRelayVersion)
+parser.add_argument('--verbose', dest='verbose', action='store_const',
+                    const=True, default=False, help='More debug output')
                     
 args = parser.parse_args()
 
+verbose = args.verbose
 maxAge = args.maxAge
 tcePath = args.tcePath
 fromTce = args.fromTce
@@ -280,12 +283,12 @@ def getJsonRequest():
                 (updateById == None or stationId in updateById)):
                 jsonData["knownMarkets"].append({"id":stationId, "t":t})
             else:
-                if not fromTce:
+                if verbose and not fromTce:
                     print("Skipping market because of command line params:", marketName, starName, stationId)
                 
         else:
             if not fromTce:
-                print(marketName, starName, stationId, "ID not found!!!!!!!!")
+                print(marketName, starName, stationId, "ID not found!")
     
         # if len(jsonData["knownMarkets"]) > 50:
             # break
@@ -384,7 +387,7 @@ def deletePricesForMarket(localMarketId):
 def setLocalMarketLastDate(localMarketId, collectedAt):
     global connUserMarkets
     c = connUserMarkets.cursor()
-    if not fromTce:
+    if verbose and not fromTce:
         print ("Updating LastDate for localMarketId", localMarketId, "to", collectedAt)
     # Magic date calculation :)
     collectedDate = datetime.utcfromtimestamp(collectedAt)
