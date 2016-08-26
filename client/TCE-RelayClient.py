@@ -44,7 +44,7 @@ import os
 import uuid
 import re
 
-tceRelayVersion = "0.2-beta"
+tceRelayVersion = "0.3-beta"
 apiVersion = 2
 
 parser = argparse.ArgumentParser(description='TCE-Relay Client for Elite Dangerous')
