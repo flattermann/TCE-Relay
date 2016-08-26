@@ -124,6 +124,7 @@ connTceRelayClientLocal.cursor().execute('CREATE TABLE IF NOT EXISTS stringStore
 # These too, our caches
 localMarketIdCache = {}
 stationIdCache = {}
+localMarketCache = {}
 
 def getUserMarketIdMax():
     global connUserMarkets
@@ -138,12 +139,23 @@ def getUserMarketIdMax():
 
 def getUserMarketId(systemName, stationName):
     global connUserMarkets
-    c = connUserMarkets.cursor()
+    if len(localMarketCache) == 0:
+        c = connUserMarkets.cursor()
 #	print ("Checking market", systemId, stationName)
-    c.execute("SELECT * FROM public_Markets WHERE StarName=? AND MarketName=?", (systemName, stationName))
-    result = c.fetchone()
-    if (result != None):
-        return result["id"]
+        c.execute("SELECT * FROM public_Markets")
+#        c.execute("SELECT * FROM public_Markets WHERE StarName=? AND MarketName=?", (systemName, stationName))
+        markets = c.fetchall()
+        for market in markets:
+            key=market["StarName"]+"###"+market["MarketName"]
+            localMarketCache[key] = market
+    key=systemName+"###"+stationName
+    val = None
+    try:
+        val = localMarketCache[key]
+    except KeyError:
+        localMarketCache[key] = val
+    if val != None:
+        return val["ID"]
     else:
         return -1
 
@@ -156,11 +168,11 @@ def getDefaultMarket(systemName, stationName):
 
 def addUserMarket(tceDefaultMarket):
     global connUserMarkets
+    tdm = tceDefaultMarket
     c = connUserMarkets.cursor()
     nextId = getUserMarketIdMax() + 1
     if not fromTce:
-        print ("    Adding Market", nextId, tceDefaultMarket["ID"])
-    tdm = tceDefaultMarket
+        print ("    Adding Market", nextId, tdm["ID"])
     c.execute("INSERT INTO public_Markets ("
         "ID, MarketName, StarID, StarName, SectorID, AllegianceID, PriEconomy, SecEconomy, DistanceStar, LastDate, LastTime, "
         "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ) "
