@@ -44,10 +44,13 @@ from sys import exit
 import os
 import uuid
 import re
+import locale
 # import traceback
 
 tceRelayVersion = "0.3-beta"
 apiVersion = 2
+
+locale.setlocale(locale.LC_ALL, '')
 
 parser = argparse.ArgumentParser(description='TCE-Relay Client for Elite Dangerous')
 
@@ -416,11 +419,28 @@ def deletePricesForMarket(localMarketId):
 def parseTceTimeToUnixtime(dateInteger, timeString):
     if verbose:
         print ("Parsing TCE date: ", dateInteger, timeString)
-    if timeString.find("AM") >= 0 or timeString.find("PM") >= 0:
-        ret=datetime.strptime(timeString, "%I:%M:%S %p")
-    else:
-        ret=datetime.strptime(timeString, "%H:%M:%S")
-
+    if dateInteger == 0:
+        return 0
+    ret=None
+    try:
+        ret=datetime.strptime(timeString, "%X")
+    except ValueError:
+        # Try parsing as HH:MM:SS
+        try:
+            ret=datetime.strptime(timeString, "%H:%M:%S")
+        except ValueError:
+            # Try parsing as HH:MM:SS AM/PM
+            try:
+                if timeString.find("AM") >= 0:
+                    ret=datetime.strptime(timeString, "%H:%M:%S AM")
+                elif timeString.find("PM") >= 0:
+                    ret=datetime.strptime(timeString, "%H:%M:%S PM")+timedelta(hours=12)
+            except ValueError:
+                # Giving up
+                pass
+    if ret == None:
+        # Use default
+        ret=datetime(1900,1,1)
     # Some date magic here :)
     ret = ret + timedelta(days=dateInteger-469703)
     if verbose:
