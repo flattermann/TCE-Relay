@@ -47,7 +47,7 @@ import re
 import locale
 # import traceback
 
-tceRelayVersion = "0.3.1-beta"
+tceRelayVersion = "0.3.1-beta3"
 apiVersion = 2
 maxTradegoodId = 145
 
