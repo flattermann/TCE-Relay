@@ -489,6 +489,7 @@ def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
             (localMarketId, tradegoodId, buyPrice, sellPrice, supply))
         return True
     else:
+        print ("Did not add price to DB because tradegoodId is out of range", tradegoodId)
         return False
     # print("Updating price", localMarketId, tradegoodId, supply, buyPrice, sellPrice, collectedAt)
     #print ("Local market ID", localMarketId)
