@@ -49,6 +49,7 @@ import locale
 
 tceRelayVersion = "0.3.1-beta"
 apiVersion = 2
+maxTradegoodId = 145
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -481,11 +482,14 @@ def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
     global connPrices
     global connUserMarkets
     c = connPrices.cursor()
-    c.execute("INSERT INTO public_MarketPrices ("
-        "MarketID, GoodID, Buy, Sell, Stock) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (localMarketId, tradegoodId, buyPrice, sellPrice, supply))
-    return True
+    if tradegoodId <= maxTradegoodId:
+        c.execute("INSERT INTO public_MarketPrices ("
+            "MarketID, GoodID, Buy, Sell, Stock) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (localMarketId, tradegoodId, buyPrice, sellPrice, supply))
+        return True
+    else
+        return False
     # print("Updating price", localMarketId, tradegoodId, supply, buyPrice, sellPrice, collectedAt)
     #print ("Local market ID", localMarketId)
 
