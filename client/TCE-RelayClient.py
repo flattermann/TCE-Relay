@@ -312,16 +312,16 @@ def getJsonRequest():
                     (onlySystemNames == None or starName in onlySystemNames) and
                     (updateById == None or stationId in updateById)):
                     jsonData["knownMarkets"].append({"id":stationId, "t":t})
-                else:
-                    if verbose and not fromTce:
-                        print("Skipping market because of command line params:", marketName, starName, stationId)
+                # else:
+                    # if verbose and not fromTce:
+                        # print("Skipping market because of command line params:", marketName, starName, stationId)
                     
             else:
                 if not fromTce:
                     print(marketName, starName, stationId, "ID not found!")
-        else:
-            if verbose and not fromTce:
-                print("Skipping market because of --local-id command line params:", marketName, starName, stationId)
+        # else:
+            # if verbose and not fromTce:
+                # print("Skipping market because of --local-id command line params:", localMarketId)
         
         # if len(jsonData["knownMarkets"]) > 50:
             # break
@@ -589,8 +589,8 @@ if not args.offlineMode:
     try:
         jsonData = getJsonRequest()
     except:
-        # showError("Unable to create request!")
-        print(traceback.format_exc())
+        # print(traceback.format_exc())
+        showError("Unable to create request!")
         exit(1)
 
     try:
