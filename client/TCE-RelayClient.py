@@ -488,7 +488,7 @@ def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
             "VALUES (?, ?, ?, ?, ?)",
             (localMarketId, tradegoodId, buyPrice, sellPrice, supply))
         return True
-    else
+    else:
         return False
     # print("Updating price", localMarketId, tradegoodId, supply, buyPrice, sellPrice, collectedAt)
     #print ("Local market ID", localMarketId)
