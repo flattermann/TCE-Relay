@@ -300,18 +300,18 @@ def getJsonRequest():
             oldTimeStr = market["LastTime"]
 
             if stationId >= 0:
-                try:
-                    # Get UTC timestamp
-                    t=parseTceTimeToUnixtime(oldDateStr, oldTimeStr)
-                except OverflowError:
-                    t=0
-                # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
-                if fetchOlder:
-                    t=0
                 if ((onlyStationNames == None or marketName in onlyStationNames) and 
                     (onlySystemNames == None or starName in onlySystemNames) and
                     (updateById == None or stationId in updateById)):
-                    jsonData["knownMarkets"].append({"id":stationId, "t":t})
+                    try:
+                        # Get UTC timestamp
+                        t=parseTceTimeToUnixtime(oldDateStr, oldTimeStr)
+                    except OverflowError:
+                        t=0
+                    # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
+                    if fetchOlder:
+                        t=0
+                        jsonData["knownMarkets"].append({"id":stationId, "t":t})
                 # else:
                     # if verbose and not fromTce:
                         # print("Skipping market because of command line params:", marketName, starName, stationId)
