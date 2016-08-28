@@ -628,6 +628,7 @@ def clearPrices():
     global connUserMarkets
     cP = connPrices.cursor()
     cUM = connUserMarkets.cursor()
+    print("Removing all prices and setting LastDate=0 for all markets")
     cP.execute("DELETE FROM Public_MarketPrices")
     cUM.execute("UPDATE Public_Markets set LastDate=0")
 
