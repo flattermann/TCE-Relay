@@ -53,7 +53,7 @@ def show():
     ret += "The DB was accessed <em>{:,}</em> times.<br/>".format(accCount)
     ret += "Data for <em>{:,}</em> markets was requested.".format(sumKnownMarkets)
     ret += "We've delivered <em>{:,}</em> prices for <em>{:,}</em> markets<br/>".format(sumSentPrices, sumSentMarkets)
-    ret += "In total this took us <em>{:.2}</em> seconds, average process time per call was <em>{:.3}</em>s.".format(sumProcessTime, sumProcessTime/accCount)
+    ret += "In total this took us <em>{:,}</em> seconds, average process time per call was <em>{:.3}</em>s.".format(int(sumProcessTime), sumProcessTime/accCount)
     ret += "</p>"
 
     t2 = time.clock()
