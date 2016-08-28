@@ -49,7 +49,6 @@ import locale
 
 tceRelayVersion = "0.3.1-beta3"
 apiVersion = 2
-maxTradegoodId = 145
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -118,6 +117,7 @@ connPrices = sqlite3.connect(tcePath+"/db/TCE_Prices.db")
 connTceRelayClient = sqlite3.connect(getMyPath("TCE-RelayClient.db"))
 connTceRelayClientLocal = sqlite3.connect(getMyPath("TCE-RelayClient_local.db"))
 connStars = sqlite3.connect(tcePath+"/db/TCE_Stars.db")
+connResources = sqlite3.connect(tcePath+"/db/Resources.db")
 
 connUserMarkets.row_factory = sqlite3.Row
 connDefaultMarkets.row_factory = sqlite3.Row
@@ -125,12 +125,28 @@ connPrices.row_factory = sqlite3.Row
 connTceRelayClient.row_factory = sqlite3.Row
 connTceRelayClientLocal.row_factory = sqlite3.Row
 connStars.row_factory = sqlite3.Row
+connResources.row_factory = sqlite3.Row
 
 connTceRelayClientLocal.cursor().execute('CREATE TABLE IF NOT EXISTS stringStore (key TEXT, value TEXT, PRIMARY KEY(key))')
+
 # These too, our caches
 localMarketIdCache = {}
 stationIdCache = {}
 localMarketCache = {}
+
+maxTradegoodId = -1
+
+def getMaxTradegoodId():
+    global connResources
+    if maxTradegoodId <= 0:
+        c = connResources.cursor()
+        c.execute("SELECT max(ID) as maxId FROM public_Goods")
+        result = c.fetchone()
+        if result != None:
+            maxTradegoodId = result["maxId"]
+            if verbose:
+                print ("MaxTradegoodId is", maxTradegoodId)
+    return maxTradegoodId
 
 def getUserMarketIdNext():
     global connUserMarkets
@@ -284,6 +300,7 @@ def getJsonRequest():
     jsonData["knownMarkets"] = []
     jsonData["maxAge"] = maxAge
     jsonData["guid"] = getGuid()
+    jsonData["maxTradegoodId"] = getMaxTradegoodId()
     
     count = 0
     markets = cUM.fetchall()
@@ -482,7 +499,7 @@ def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
     global connPrices
     global connUserMarkets
     c = connPrices.cursor()
-    if tradegoodId <= maxTradegoodId:
+    if tradegoodId <= getMaxTradegoodId():
         c.execute("INSERT INTO public_MarketPrices ("
             "MarketID, GoodID, Buy, Sell, Stock) "
             "VALUES (?, ?, ?, ?, ?)",
