@@ -1,5 +1,6 @@
 client/build
 client/TCE-RelayClient_local.db
+client/*.json
 server/config.py
 server/config.pyc
 servertools/*/config.pyc
