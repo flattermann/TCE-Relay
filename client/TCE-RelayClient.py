@@ -529,8 +529,9 @@ def addMarkets(list):
             defaultMarket = getDefaultMarket(systemName, marketName)
             if defaultMarket != None:
                 newId = addUserMarket(defaultMarket)
-                stationId = getStationId(marketName, systemName, newId)
-                updateById.append(stationId)
+                if newId > 0:
+                    stationId = getStationId(marketName, systemName, newId)
+                    updateById.append(stationId)
             else:
                 print ("  No matching market found in UMarkets")
 
