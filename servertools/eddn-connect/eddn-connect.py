@@ -334,8 +334,12 @@ def main():
                                 echoLog('        - Commodities: ' + str(len(__json['message']['commodities'])))
 
                                 stationId = getStationId(__json['message']['systemName'], __json['message']['stationName'])
-                                timestamp = dateutil.parser.parse(__json['message']['timestamp'])
-                                unixtime = calendar.timegm(timestamp.timetuple())
+
+                                try:
+                                    timestamp = dateutil.parser.parse(__json['message']['timestamp'])
+                                    unixtime = calendar.timegm(timestamp.timetuple())
+                                except TypeError:
+                                    unixtime = time.time()
 
                                 echoLog('        - Station ID: ' + str(stationId))
                                 if __verbose:
