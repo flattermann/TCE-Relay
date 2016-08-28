@@ -702,6 +702,15 @@ if not args.offlineMode:
 connUserMarkets.commit()
 connPrices.commit()
 
+# Close DB connections
+connUserMarkets.close()
+connDefaultMarkets.close()
+connPrices.close()
+connTceRelayClient.close()
+connTceRelayClientLocal.close()
+connStars.close()
+connResources.close()
+
 t2 = timeit.default_timer()
 if not fromTce:
     print ("Total runtime:",(t2-t1),"seconds")
