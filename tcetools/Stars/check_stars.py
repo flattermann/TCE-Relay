@@ -3,6 +3,7 @@
 import json
 import sqlite3
 import timeit
+import os
 
 updateStars = True
 
