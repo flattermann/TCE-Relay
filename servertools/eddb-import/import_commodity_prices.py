@@ -92,7 +92,7 @@ list = []
 countUpdated=0
 for row in listingsCsv:
     rowCount += 1
-    if (rowCount % 50000 == 0):
+    if (rowCount % 100000 == 0):
         t2 = timeit.default_timer()
         print "{} rows read in {} seconds".format(rowCount, t2-t1)
     if len(list) == 50000:
