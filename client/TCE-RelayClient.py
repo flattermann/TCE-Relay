@@ -70,6 +70,8 @@ parser.add_argument('--id', '-i', type=int, dest='id', action='append',
                     help='DEBUG: Update station with this id')
 parser.add_argument('--local-id', '-I', type=int, dest='localId', action='append',
                     help='DEBUG: Update station with this local id')
+parser.add_argument('--list-markets', '-l', metavar='SYSTEMNAME', dest='listMarketsBySystenName', action='append',
+                    default=None, help='DEBUG: List markets by system name')
 parser.add_argument('--i-know-the-risks', dest='iKnowTheRisks', action='store_const',
                     const=True, default=False, help='Enable experimental features that will probably harm you DB')
 parser.add_argument('--add-market', '-a', metavar='STATIONNAME@SYSTEMNAME', dest='addMarket', action='append',
@@ -261,7 +263,7 @@ def showError(text):
 def getLocalMarketId(stationId):
     return localMarketIdCache[int(stationId)]
     
-def getStationId(marketName, starName, marketId):
+def getStationId(marketName, starName, marketId=-1):
     global connTceRelayClient
     
     try:
@@ -544,7 +546,7 @@ def getMarketsForSystem(systemId, maxStarDistance=1000, planetary=False):
         planetarySql=""
     else:
         planetarySql=" AND (Type<13 OR Type>15)"
-    c.execute("SELECT * from public_Markets_UR WHERE StarID=? AND DistanceStar<=?"+planetarySql, (systemId, maxStarDistance))
+    c.execute("SELECT * from public_Markets_UR WHERE StarID=? AND DistanceStar<=?"+planetarySql+" ORDER BY DistanceStar", (systemId, maxStarDistance))
     return c.fetchall()
 
 def getStarByName(name):
@@ -601,6 +603,24 @@ def addMarketsNearSystem(list):
             print ("Star not found:", baseSystemName)
     print ("Added", countAdded, "Markets to TCE DB")
 
+def listMarketsBySystenName(list):
+    for starName in list:
+        starName = starName.upper()
+        star = getStarByName(starName)
+        if star == None:
+            print ("Star not found in TCE DB:", starName)
+        else:
+            starId = star["ID"]
+            print ("Found star in TCE DB:", starName, "-> systemId:", starId)
+            marketsInSystem = getMarketsForSystem(starId, 1000000, True)
+            for market in marketsInSystem:
+                marketName = market["MarketName"]
+                stationId=getStationId(marketName, starName)
+                print ("Found market in TCE DB (UMarkets): {}, DistanceFromStar={}, type={}".format(marketName, market["DistanceStar"], market["type"]))
+                localMarketId = getUserMarketId(starName, marketName)
+                if localMarketId > 0:
+                    print ("    localMarketId: {}, eddbStationId: {}".format(localMarketId, stationId))
+
 t1 = timeit.default_timer()
 
 if verbose:
@@ -625,6 +645,10 @@ if args.iKnowTheRisks:
     elif addMarketList != None and len(addMarketList) > 0:
         updateById = []
         addMarkets(addMarketList)
+
+if args.listMarketsBySystenName != None:
+    args.offlineMode = True
+    listMarketsBySystenName(args.listMarketsBySystenName)
 
 if not args.offlineMode:
     try:
