@@ -522,6 +522,8 @@ def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
 def addMarkets(list):
     for marketFullName in list:
         marketName, systemName = marketFullName.split("@")
+        marketName = marketName.upper()
+        systemName = systemName.upper()
         if getUserMarketId(systemName, marketName) < 0:
             print ("Adding market", marketName.upper(), systemName.upper())
             defaultMarket = getDefaultMarket(systemName, marketName)
