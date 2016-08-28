@@ -3,17 +3,20 @@
 import json
 import sqlite3
 import timeit
+import os
 
-stations = json.load(open('c:/temp/stations.json'))
-systems = json.load(open('c:/temp/systems_populated.json'))
+scriptDir = os.path.dirname(os.path.realpath(__file__))
+
+stations = json.load(open(scriptDir + "/stations.json"))
+systems = json.load(open(scriptDir + "/systems_populated.json"))
 
 total=len(stations)
 print("There are",total,"stations")
 
-connDefaultMarkets = sqlite3.connect("c:/tce/db/TCE_UMarkets.db")
+connDefaultMarkets = sqlite3.connect(scriptDir + "/TCE_UMarkets.db")
 connDefaultMarkets.row_factory = sqlite3.Row
 
-connResources = sqlite3.connect("c:/tce/db/Resources.db")
+connResources = sqlite3.connect(scriptDir + "/Resources.db")
 connResources.row_factory = sqlite3.Row
 
 typesCache = {}
