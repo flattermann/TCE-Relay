@@ -78,6 +78,8 @@ parser.add_argument('--add-market', '-a', metavar='STATIONNAME@SYSTEMNAME', dest
                     default=None, help='EXPERIMENTAL: Add market with this name (overrides -i)')
 parser.add_argument('--add-markets-near-system', '-A', metavar='SYSTEMNAME,LY,LS,WITHPLANETARY', dest='addMarketsNearSystem', action='append',
                     default=None, help='EXPERIMENTAL: Add markets near system SYSTEMNAME, LY=max distance, LS=max star distance, WITHPLANETARY=Y/N, e.g. -A "LTT 9810,50,1000,N" (overrides -i)')
+parser.add_argument('--clear-prices', dest='clearPrices', action='store_const',
+                    const=True, default=False, help='EXPERIMENTAL: Clear all prices from DB')
 parser.add_argument('--offline', dest='offlineMode', action='store_const',
                     const=True, default=False, help='Offline mode (useful for -a)')
 parser.add_argument('--version', '-v', action='version',
@@ -621,6 +623,14 @@ def listMarketsBySystenName(list):
                 if localMarketId > 0:
                     print ("    localMarketId: {}, eddbStationId: {}".format(localMarketId, stationId))
 
+def clearPrices():
+    global connPrices
+    global connUserMarkets
+    cP = connPrices.cursor()
+    cUM = connUserMarkets.cursor()
+    cP.execute("DELETE FROM Public_MarketPrices")
+    cUM.execute("UPDATE Public_Markets set LastDate=0")
+
 t1 = timeit.default_timer()
 
 if verbose:
@@ -639,6 +649,8 @@ if args.iKnowTheRisks:
     print ("==========================================================================")
     print ("Enabling experimental features. I hope you made a backup first. Take care.")
     print ("==========================================================================")
+    if args.clearPrices:
+        clearPrices()
     if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
         updateById = []
         addMarketsNearSystem(addMarketsNearSystemList)
@@ -649,7 +661,7 @@ if args.iKnowTheRisks:
 if args.listMarketsBySystenName != None:
     args.offlineMode = True
     listMarketsBySystenName(args.listMarketsBySystenName)
-
+    
 if not args.offlineMode:
     try:
         jsonData = getJsonRequest()
