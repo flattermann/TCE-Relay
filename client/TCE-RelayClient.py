@@ -40,12 +40,17 @@ import requests
 from datetime import datetime, timedelta, timezone
 import argparse
 import sys
+from sys import exit
 import os
 import uuid
 import re
+import locale
+import traceback
 
-tceRelayVersion = "0.2-beta"
+tceRelayVersion = "0.3.2-beta"
 apiVersion = 2
+
+locale.setlocale(locale.LC_ALL, '')
 
 parser = argparse.ArgumentParser(description='TCE-Relay Client for Elite Dangerous')
 
@@ -63,18 +68,32 @@ parser.add_argument('--systemname', '-N', dest='systemName', action='append',
                     default=None, help='DEBUG: Set system manually')
 parser.add_argument('--id', '-i', type=int, dest='id', action='append',
                     help='DEBUG: Update station with this id')
+parser.add_argument('--local-id', '-I', type=int, dest='localId', action='append',
+                    help='DEBUG: Update station with this local id')
+parser.add_argument('--add-market', '-a', metavar='STATIONNAME@SYSTEMNAME', dest='addMarket', action='append',
+                    default=None, help='ALPHA: Add market with this name (overrides -i)')
+parser.add_argument('--add-markets-near-system', '-A', metavar='SYSTEMNAME,LY,LS,WITHPLANETARY', dest='addMarketsNearSystem', action='append',
+                    default=None, help='ALPHA: Add markets near system SYSTEMNAME, LY=max distance, LS=max star distance, WITHPLANETARY=Y/N, e.g. -A "LTT 9810,50,1000,N" (overrides -i)')
+parser.add_argument('--offline', dest='offlineMode', action='store_const',
+                    const=True, default=False, help='Offline mode (useful for -a)')
 parser.add_argument('--version', '-v', action='version',
                     version=tceRelayVersion)
+parser.add_argument('--verbose', dest='verbose', action='store_const',
+                    const=True, default=False, help='More debug output')
                     
 args = parser.parse_args()
 
+verbose = args.verbose
 maxAge = args.maxAge
 tcePath = args.tcePath
 fromTce = args.fromTce
 fetchOlder = args.fetchOlder
 onlyStationNames = args.stationName
 onlySystemNames = args.systemName
+addMarketList = args.addMarket
+addMarketsNearSystemList = args.addMarketsNearSystem
 updateById = args.id
+updateByLocalId = args.localId
 
 def getMyPath(filename=None):
     if getattr(sys, 'frozen', False):
@@ -93,19 +112,111 @@ tceRelayUrl='http://tcerelay.flat09.de/prices'
 
 # These too
 connUserMarkets = sqlite3.connect(tcePath+"/db/TCE_RMarkets.db")
+connDefaultMarkets = sqlite3.connect(tcePath+"/db/TCE_UMarkets.db")
 connPrices = sqlite3.connect(tcePath+"/db/TCE_Prices.db")
 connTceRelayClient = sqlite3.connect(getMyPath("TCE-RelayClient.db"))
 connTceRelayClientLocal = sqlite3.connect(getMyPath("TCE-RelayClient_local.db"))
+connStars = sqlite3.connect(tcePath+"/db/TCE_Stars.db")
+connResources = sqlite3.connect(tcePath+"/db/Resources.db")
 
 connUserMarkets.row_factory = sqlite3.Row
+connDefaultMarkets.row_factory = sqlite3.Row
 connPrices.row_factory = sqlite3.Row
 connTceRelayClient.row_factory = sqlite3.Row
 connTceRelayClientLocal.row_factory = sqlite3.Row
+connStars.row_factory = sqlite3.Row
+connResources.row_factory = sqlite3.Row
 
 connTceRelayClientLocal.cursor().execute('CREATE TABLE IF NOT EXISTS stringStore (key TEXT, value TEXT, PRIMARY KEY(key))')
+
 # These too, our caches
 localMarketIdCache = {}
 stationIdCache = {}
+localMarketCache = {}
+
+maxTradegoodId = -1
+
+def getMaxTradegoodId():
+    global connResources
+    global maxTradegoodId
+    if maxTradegoodId <= 0:
+        c = connResources.cursor()
+        c.execute("SELECT max(ID) as maxId FROM public_Goods")
+        result = c.fetchone()
+        if result != None:
+            maxTradegoodId = result["maxId"]
+            if verbose:
+                print ("MaxTradegoodId is", maxTradegoodId)
+    return maxTradegoodId
+
+def getUserMarketIdNext():
+    global connUserMarkets
+    c = connUserMarkets.cursor()
+    c.execute("SELECT (t1.ID+1) as nextId FROM public_Markets AS t1 LEFT JOIN public_Markets as t2 ON t1.ID+1 = t2.ID WHERE t2.ID IS NULL limit 1")
+    result = c.fetchone()
+    if result != None:
+        return result["nextId"]
+    else:
+        return getUserMarketIdMax()+1
+
+def getUserMarketIdMax():
+    global connUserMarkets
+    c = connUserMarkets.cursor()
+#	print ("Checking market", systemId, stationName)
+    c.execute("SELECT ID FROM public_Markets ORDER BY ID DESC")
+    result = c.fetchone()
+    if (result != None):
+        return result["id"]
+    else:
+        return -1
+
+def getUserMarketId(systemName, stationName):
+    global connUserMarkets
+    if len(localMarketCache) == 0:
+        c = connUserMarkets.cursor()
+#	print ("Checking market", systemId, stationName)
+        c.execute("SELECT * FROM public_Markets")
+#        c.execute("SELECT * FROM public_Markets WHERE StarName=? AND MarketName=?", (systemName, stationName))
+        markets = c.fetchall()
+        for market in markets:
+            key=market["StarName"]+"###"+market["MarketName"]
+            localMarketCache[key] = market
+    key=systemName+"###"+stationName
+    val = None
+    try:
+        val = localMarketCache[key]
+    except KeyError:
+        localMarketCache[key] = val
+    if val != None:
+        return val["ID"]
+    else:
+        return -1
+
+def getDefaultMarket(systemName, stationName):
+    global connDefaultMarkets
+    c = connDefaultMarkets.cursor()
+    c.execute("SELECT * FROM public_Markets_UR WHERE StarName=? AND MarketName=?", (systemName, stationName))
+    result = c.fetchone()
+    return result
+
+def addUserMarket(tceDefaultMarket):
+    global connUserMarkets
+    tdm = tceDefaultMarket
+    c = connUserMarkets.cursor()
+    nextId = getUserMarketIdNext()
+    if not fromTce:
+        print ("    Adding Market", nextId, tdm["ID"])
+    c.execute("INSERT INTO public_Markets ("
+        "ID, MarketName, StarID, StarName, SectorID, AllegianceID, PriEconomy, SecEconomy, DistanceStar, LastDate, LastTime, "
+        "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ) "
+        "VALUES (?" + 24*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
+        0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0))
+    return nextId
+
+def calcDistance(p1,p2):
+    return math.sqrt((p2[0] - p1[0]) ** 2 +
+                     (p2[1] - p1[1]) ** 2 +
+                     (p2[2] - p1[2]) ** 2)
 
 def getLocalDbString(key):
     global connTceRelayClientLocal
@@ -148,6 +259,8 @@ def getStationId(marketName, starName, marketId):
     try:
         val = stationIdCache[int(marketId)]
     except KeyError:
+        marketName = marketName.upper()
+        starName = starName.upper()
         c = connTceRelayClient.cursor()
     
         c.execute("SELECT stationId FROM stationIdMappings WHERE stationName=? AND systemName=?", (marketName, starName))
@@ -188,6 +301,7 @@ def getJsonRequest():
     jsonData["knownMarkets"] = []
     jsonData["maxAge"] = maxAge
     jsonData["guid"] = getGuid()
+    jsonData["maxTradegoodId"] = getMaxTradegoodId()
     
     count = 0
     markets = cUM.fetchall()
@@ -196,38 +310,37 @@ def getJsonRequest():
         if fromTce: # and count % 10 == 0:
             showProgress(count, len(markets), "Preparing request")
         localMarketId=market["ID"]
-        marketName=market["MarketName"]
-        starName=market["StarName"]
-        stationId = getStationId(marketName, starName, localMarketId)
-        oldDateStr = market["LastDate"]
-        oldTimeStr = market["LastTime"]
-        oldTimeArray = oldTimeStr.split(":")
-        oldH = oldTimeArray[0]
-        oldM = oldTimeArray[1]
-        oldS = oldTimeArray[2]
-        oldDate = datetime(613, 12, 31) + timedelta(days=int(oldDateStr), hours=int(oldH), minutes=int(oldM), seconds=int(oldS))
+        if updateByLocalId == None or localMarketId in updateByLocalId:
+            marketName=market["MarketName"]
+            starName=market["StarName"]
+            stationId = getStationId(marketName, starName, localMarketId)
+            oldDateStr = market["LastDate"]
+            oldTimeStr = market["LastTime"]
 
-        if stationId >= 0:
-            try:
-                # Get UTC timestamp
-                t=int(oldDate.replace(tzinfo=timezone.utc).timestamp())
-            except OverflowError:
-                t=0
-            # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
-            if fetchOlder:
-                t=0
-            if ((onlyStationNames == None or marketName in onlyStationNames) and 
-                (onlySystemNames == None or starName in onlySystemNames) and
-                (updateById == None or stationId in updateById)):
-                jsonData["knownMarkets"].append({"id":stationId, "t":t})
+            if stationId >= 0:
+                if ((onlyStationNames == None or marketName in onlyStationNames) and 
+                    (onlySystemNames == None or starName in onlySystemNames) and
+                    (updateById == None or stationId in updateById)):
+                    try:
+                        # Get UTC timestamp
+                        t=parseTceTimeToUnixtime(oldDateStr, oldTimeStr)
+                    except OverflowError:
+                        t=0
+                    # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
+                    if fetchOlder:
+                        t=0
+                        jsonData["knownMarkets"].append({"id":stationId, "t":t})
+                # else:
+                    # if verbose and not fromTce:
+                        # print("Skipping market because of command line params:", marketName, starName, stationId)
+                    
             else:
                 if not fromTce:
-                    print("Skipping market because of command line params:", marketName, starName, stationId)
-                
-        else:
-            if not fromTce:
-                print(marketName, starName, stationId, "ID not found!!!!!!!!")
-    
+                    print(marketName, starName, stationId, "ID not found!")
+        # else:
+            # if verbose and not fromTce:
+                # print("Skipping market because of --local-id command line params:", localMarketId)
+        
         # if len(jsonData["knownMarkets"]) > 50:
             # break
         # break
@@ -321,17 +434,65 @@ def deletePricesForMarket(localMarketId):
     global connPrices
     c = connPrices.cursor()
     c.execute("DELETE FROM public_MarketPrices WHERE MarketID=?", (localMarketId, ))
+
+def parseTceTimeToUnixtime(dateInteger, timeString):
+    if verbose:
+        print ("Parsing TCE date: ", dateInteger, timeString)
+    if dateInteger == 0:
+        return 0
+    ret=None
+    try:
+        ret=datetime.strptime(timeString, "%X")
+    except ValueError:
+        # Try parsing as HH:MM:SS
+        try:
+            ret=datetime.strptime(timeString, "%H:%M:%S")
+        except ValueError:
+            # Try parsing as HH:MM:SS AM/PM
+            try:
+                if timeString.find("AM") >= 0:
+                    ret=datetime.strptime(timeString, "%H:%M:%S AM")
+                elif timeString.find("PM") >= 0:
+                    ret=datetime.strptime(timeString, "%H:%M:%S PM")+timedelta(hours=12)
+            except ValueError:
+                # Giving up
+                pass
+    if ret == None:
+        # Use default
+        ret=datetime(1900,1,1)
+    # Some date magic here :)
+    ret = ret + timedelta(days=dateInteger-469703)
+    if verbose:
+        print ("Parsed:", ret)
+    unixtime = int(ret.replace(tzinfo=timezone.utc).timestamp())
+    if verbose:
+        print ("Unix time", unixtime)
+
+    return unixtime
+
+def parseUnixtimeToTceTime(unixtime):
+    # Magic date calculation :)
+    if verbose:
+        print ("Parsing unixtime to TCE:", unixtime)
+    collectedDate = datetime.utcfromtimestamp(unixtime)
+    tceBase = collectedDate - datetime(613, 12, 31)
+    if verbose:
+        print ("tceBase", tceBase)
+    newTceDate = str(int(tceBase/timedelta(days=1)))
+    if verbose:
+        print ("tceDate", newTceDate)
+    newTceTime = collectedDate.strftime("%X")
+    if verbose:
+        print ("tceTime", newTceTime)
+
+    return (newTceDate, newTceTime)
     
 def setLocalMarketLastDate(localMarketId, collectedAt):
     global connUserMarkets
     c = connUserMarkets.cursor()
-    if not fromTce:
+    if verbose and not fromTce:
         print ("Updating LastDate for localMarketId", localMarketId, "to", collectedAt)
-    # Magic date calculation :)
-    collectedDate = datetime.utcfromtimestamp(collectedAt)
-    tceBase = collectedDate - datetime(613, 12, 31)
-    newTceDate = str(int(tceBase/timedelta(days=1)))
-    newTceTime = collectedDate.strftime("%H:%M:%S")
+    newTceDate, newTceTime = parseUnixtimeToTceTime(collectedAt)
     c.execute("UPDATE public_Markets set LastDate=?, LastTime=? WHERE id=?", (newTceDate, newTceTime, localMarketId))
     
 # Update a single price
@@ -339,33 +500,130 @@ def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
     global connPrices
     global connUserMarkets
     c = connPrices.cursor()
-    c.execute("INSERT INTO public_MarketPrices ("
-        "MarketID, GoodID, Buy, Sell, Stock) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (localMarketId, tradegoodId, buyPrice, sellPrice, supply))
-    return True
+    if tradegoodId <= getMaxTradegoodId():
+        c.execute("INSERT INTO public_MarketPrices ("
+            "MarketID, GoodID, Buy, Sell, Stock) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (localMarketId, tradegoodId, buyPrice, sellPrice, supply))
+        return True
+    else:
+        print ("Did not add price to DB because tradegoodId is out of range", tradegoodId)
+        return False
     # print("Updating price", localMarketId, tradegoodId, supply, buyPrice, sellPrice, collectedAt)
     #print ("Local market ID", localMarketId)
-            
+
+def addMarkets(list):
+    for marketFullName in list:
+        marketName, systemName = marketFullName.split("@")
+        if getUserMarketId(systemName, marketName) < 0:
+            print ("Adding market", marketName.upper(), systemName.upper())
+            defaultMarket = getDefaultMarket(systemName, marketName)
+            if defaultMarket != None:
+                newId = addUserMarket(defaultMarket)
+                stationId = getStationId(marketName, systemName, newId)
+                updateById.append(stationId)
+            else:
+                print ("  No matching market found in UMarkets")
+
+def getMarketsForSystem(systemId, maxStarDistance=1000, planetary=False):
+    global connDefaultMarkets
+    c = connDefaultMarkets.cursor()
+    if planetary:
+        planetarySql=""
+    else:
+        planetarySql=" AND (Type<13 OR Type>15)"
+    c.execute("SELECT * from public_Markets_UR WHERE StarID=? AND DistanceStar<=?"+planetarySql, (systemId, maxStarDistance))
+    return c.fetchall()
+
+def getStarByName(name):
+    global connStars
+    name = name.upper()
+    c = connStars.cursor()
+    c.execute("SELECT * from Public_Stars WHERE StarName=?", (name,))
+    return c.fetchone()
+
+def getStarsNear(x, y, z, ly):
+    global connStars
+    c = connStars.cursor()
+    c.execute("SELECT * from Public_Stars")
+    stars = c.fetchall()
+    list = []
+    for star in stars:
+        if calcDistance((x, y, z), (star["X"], star["Y"], star["Z"])) <= ly:
+            list.append(star)
+    return list
+    
+def addMarketsNearSystem(list):
+    for baseSystemFull in list:
+        baseSystemName, distanceLY, distanceLS, planetary = baseSystemFull.split(',')
+        baseSystemName = baseSystemName.upper()
+        distanceLY = int(distanceLY)
+        distanceLS = int(distanceLS)
+        if planetary in ('y', 'Y', 1):
+            planetary=True
+        else:
+            planetary=False
+        star = getStarByName(baseSystemName)
+        if star != None:
+            print ("Searching for markets near", baseSystemName, star["X"], star["Y"], star["Z"], "within", distanceLY, "LY, maxDistanceToStar", distanceLS, "LS , withPlanetary", planetary)
+            nearStars=getStarsNear(star["X"], star["Y"], star["Z"], distanceLY)
+            print (len(nearStars), "near stars found!")
+            nearMarkets = []
+            for nearStar in nearStars:
+                nearMarkets.extend(getMarketsForSystem(nearStar["ID"], distanceLS, planetary))
+            print(len(nearMarkets), "near markets found!")
+            countAdded=0
+            for nearMarket in nearMarkets:
+                marketName = nearMarket["MarketName"]
+                systemName = nearMarket["StarName"]
+                if getUserMarketId(systemName, marketName) < 0:
+                    countAdded+=1
+                    print (countAdded, "Adding market", marketName, systemName)
+                    newId = addUserMarket(nearMarket)
+                    stationId = getStationId(marketName, systemName, newId)
+                    updateById.append(stationId)
+        else:
+            print ("Star not found:", baseSystemName)
+
 t1 = timeit.default_timer()
 
-try:
-    jsonData = getJsonRequest()
-except:
-    showError("Unable to create request!")
-    exit(1)
+# ut1=parseTceTimeToUnixtime(512309, "10:00:00")
+# ut2=parseTceTimeToUnixtime(512309, "10:00:00 AM")
+# ut3=parseTceTimeToUnixtime(512309, "10:00:00 PM")
 
-try:
-    jsonResponse = sendRequest(jsonData)
-except:
-    showError("Server unreachable!")
-    exit(2)
+# td1,tt1=parseUnixtimeToTceTime(ut1)
+# td2,tt2=parseUnixtimeToTceTime(ut2)
+# td3,tt3=parseUnixtimeToTceTime(ut3)
+# exit(1)
 
-try:
-    processJsonResponse(jsonResponse)
-except:
-    showError("Unable to parse response!")
-    exit(3)
+if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
+    updateById = []
+    addMarketsNearSystem(addMarketsNearSystemList)
+elif addMarketList != None and len(addMarketList) > 0:
+    updateById = []
+    addMarkets(addMarketList)
+
+if not args.offlineMode:
+    try:
+        jsonData = getJsonRequest()
+    except:
+        print(traceback.format_exc())
+        showError("Unable to create request!")
+        exit(1)
+
+    try:
+        jsonResponse = sendRequest(jsonData)
+    except:
+        print(traceback.format_exc())
+        showError("Server unreachable!")
+        exit(2)
+
+    try:
+        processJsonResponse(jsonResponse)
+    except:
+        print(traceback.format_exc())
+        showError("Unable to parse response!")
+        exit(3)
     
 connUserMarkets.commit()
 connPrices.commit()

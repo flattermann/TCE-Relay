@@ -17,6 +17,7 @@ class Access(peewee.Model):
     clientVersion = peewee.CharField(index=True)
     apiVersion = peewee.IntegerField(index=True)
     knownMarkets = peewee.IntegerField()
+    maxTradegoodId = peewee.IntegerField()
     sentMarkets = peewee.IntegerField()
     sentPrices = peewee.IntegerField()
     processTime = peewee.DoubleField()

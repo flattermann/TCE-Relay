@@ -54,18 +54,18 @@ for station in stations:
 
         name = name.upper()
         systemName = systemName.upper()
-
+        distanceStar = station["distance_to_star"]
 #		print (count,"/",marketCount,name,id)
         
-        c.execute("INSERT INTO stationIdMappings (stationId, stationName, systemName) VALUES (?, ?, ?)", 
-            (id, name, systemName))
+        c.execute("INSERT INTO stationIdMappings (stationId, systemId, stationName, systemName, distanceStar, main) VALUES (?, ?, ?, ?, ?, ?)", 
+            (id, system_id, name, systemName, distanceStar, 1))
 
         # Add systemNames without ' as well
         systemNameAscii = systemName.replace("'", "")
             
         if (systemNameAscii != systemName):
-            c.execute("INSERT INTO stationIdMappings (stationId, stationName, systemName) VALUES (?, ?, ?)", 
-                (id, name, systemNameAscii))
+            c.execute("INSERT INTO stationIdMappings (stationId, systemId, stationName, systemName, distanceStar, main) VALUES (?, ?, ?, ?, ?, ?)", 
+                (id, system_id, name, systemNameAscii, distanceStar, 0))
             
         marketCount += 1
     

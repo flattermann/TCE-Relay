@@ -36,6 +36,7 @@ class Access(peewee.Model):
     clientVersion = peewee.CharField(index=True)
     apiVersion = peewee.IntegerField(index=True)
     knownMarkets = peewee.IntegerField()
+    maxTradegoodId = peewee.IntegerField()
     sentMarkets = peewee.IntegerField()
     sentPrices = peewee.IntegerField()
     processTime = peewee.DoubleField()
@@ -73,6 +74,12 @@ def show():
     knownMarkets=jsonData["knownMarkets"]
     maxAge=jsonData["maxAge"]
     guid=jsonData["guid"]
+    if "maxTradegoodId" in jsonData:
+        maxTradegoodId = jsonData["maxTradegoodId"]
+    else:
+        # Defaults to 145 - Thats compatible with TCE 1.3.9.1 and TCE-Relay API 2
+        maxTradegoodId = 145
+        
     collectedAtMin=time.mktime((datetime.utcnow() - timedelta(days=maxAge)).timetuple())
 
     list = {}
@@ -82,7 +89,7 @@ def show():
     for market in knownMarkets[:config.marketRequestLimit]:
         curStationPrices = []
         marketDate=0
-        for price in CommodityPrice.select().where(CommodityPrice.stationId == market["id"], CommodityPrice.collectedAt > collectedAtMin):
+        for price in CommodityPrice.select().where(CommodityPrice.stationId == market["id"], CommodityPrice.collectedAt > collectedAtMin, CommodityPrice.tradegoodId <= maxTradegoodId):
             # Force same date on all goods
             if marketDate==0:
                 marketDate=price.collectedAt
@@ -104,7 +111,7 @@ def show():
     list["processTime"] = processTime
 
     clientIp = request.access_route[0]
-    access = Access(at=datetime.utcnow(), ip=clientIp, guid=guid, clientVersion=clientVersion, apiVersion=apiVersion, knownMarkets=len(knownMarkets), sentMarkets=len(priceData), sentPrices=countPrices, processTime=processTime)
+    access = Access(at=datetime.utcnow(), ip=clientIp, guid=guid, clientVersion=clientVersion, apiVersion=apiVersion, knownMarkets=len(knownMarkets), maxTradegoodId=maxTradegoodId, sentMarkets=len(priceData), sentPrices=countPrices, processTime=processTime)
     access.save()
     
 #    prices.logger.info("markets="+len(priceData)+"/"+len(knownMarkets)+", processTime="+(t2-t1))
