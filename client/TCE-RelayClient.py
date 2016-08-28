@@ -45,7 +45,7 @@ import os
 import uuid
 import re
 import locale
-# import traceback
+import traceback
 
 tceRelayVersion = "0.3.2-beta"
 apiVersion = 2
@@ -138,6 +138,7 @@ maxTradegoodId = -1
 
 def getMaxTradegoodId():
     global connResources
+    global maxTradegoodId
     if maxTradegoodId <= 0:
         c = connResources.cursor()
         c.execute("SELECT max(ID) as maxId FROM public_Goods")
@@ -606,21 +607,21 @@ if not args.offlineMode:
     try:
         jsonData = getJsonRequest()
     except:
-        # print(traceback.format_exc())
+        print(traceback.format_exc())
         showError("Unable to create request!")
         exit(1)
 
     try:
         jsonResponse = sendRequest(jsonData)
     except:
-        # print(traceback.format_exc())
+        print(traceback.format_exc())
         showError("Server unreachable!")
         exit(2)
 
     try:
         processJsonResponse(jsonResponse)
     except:
-        # print(traceback.format_exc())
+        print(traceback.format_exc())
         showError("Unable to parse response!")
         exit(3)
     
