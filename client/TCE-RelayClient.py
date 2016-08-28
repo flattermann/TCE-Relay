@@ -70,10 +70,12 @@ parser.add_argument('--id', '-i', type=int, dest='id', action='append',
                     help='DEBUG: Update station with this id')
 parser.add_argument('--local-id', '-I', type=int, dest='localId', action='append',
                     help='DEBUG: Update station with this local id')
+parser.add_argument('--i-know-the-risks', dest='iKnowTheRisks', action='store_const',
+                    const=True, default=False, help='Enable experimental features that will probably harm you DB')
 parser.add_argument('--add-market', '-a', metavar='STATIONNAME@SYSTEMNAME', dest='addMarket', action='append',
-                    default=None, help='ALPHA: Add market with this name (overrides -i)')
+                    default=None, help='EXPERIMENTAL: Add market with this name (overrides -i)')
 parser.add_argument('--add-markets-near-system', '-A', metavar='SYSTEMNAME,LY,LS,WITHPLANETARY', dest='addMarketsNearSystem', action='append',
-                    default=None, help='ALPHA: Add markets near system SYSTEMNAME, LY=max distance, LS=max star distance, WITHPLANETARY=Y/N, e.g. -A "LTT 9810,50,1000,N" (overrides -i)')
+                    default=None, help='EXPERIMENTAL: Add markets near system SYSTEMNAME, LY=max distance, LS=max star distance, WITHPLANETARY=Y/N, e.g. -A "LTT 9810,50,1000,N" (overrides -i)')
 parser.add_argument('--offline', dest='offlineMode', action='store_const',
                     const=True, default=False, help='Offline mode (useful for -a)')
 parser.add_argument('--version', '-v', action='version',
@@ -596,12 +598,16 @@ t1 = timeit.default_timer()
 # td3,tt3=parseUnixtimeToTceTime(ut3)
 # exit(1)
 
-if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
-    updateById = []
-    addMarketsNearSystem(addMarketsNearSystemList)
-elif addMarketList != None and len(addMarketList) > 0:
-    updateById = []
-    addMarkets(addMarketList)
+if args.iKnowTheRisks:
+    print ("==========================================================================")
+    print ("Enabling experimental features. I hope you made a backup first. Take care.")
+    print ("==========================================================================")
+    if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
+        updateById = []
+        addMarketsNearSystem(addMarketsNearSystemList)
+    elif addMarketList != None and len(addMarketList) > 0:
+        updateById = []
+        addMarkets(addMarketList)
 
 if not args.offlineMode:
     try:
