@@ -204,16 +204,20 @@ def getDefaultMarket(systemName, stationName):
 def addUserMarket(tceDefaultMarket):
     global connUserMarkets
     tdm = tceDefaultMarket
-    c = connUserMarkets.cursor()
-    nextId = getUserMarketIdNext()
-    if not fromTce:
-        print ("    Adding Market", nextId, tdm["ID"])
-    c.execute("INSERT INTO public_Markets ("
-        "ID, MarketName, StarID, StarName, SectorID, AllegianceID, PriEconomy, SecEconomy, DistanceStar, LastDate, LastTime, "
-        "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ) "
-        "VALUES (?" + 24*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
-        0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0))
-    return nextId
+    if getStationId(tdm["MarketName"], tdm["StarName"], -1) < 0:
+        print ("Cannot add market", tdm["MarketName"], tdm["StarName"], "because I could not find its EDDB ID")
+        return -1
+    else:
+        c = connUserMarkets.cursor()
+        nextId = getUserMarketIdNext()
+        if not fromTce:
+            print ("    Adding Market", nextId, tdm["ID"])
+        c.execute("INSERT INTO public_Markets ("
+            "ID, MarketName, StarID, StarName, SectorID, AllegianceID, PriEconomy, SecEconomy, DistanceStar, LastDate, LastTime, "
+            "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ) "
+            "VALUES (?" + 24*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
+            0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0))
+        return nextId
 
 def calcDistance(p1,p2):
     return math.sqrt((p2[0] - p1[0]) ** 2 +
@@ -281,8 +285,9 @@ def getStationId(marketName, starName, marketId):
                 # Giving up
                 val = -1
         
-        stationIdCache[int(marketId)] = val
-        localMarketIdCache[val] = int(marketId)
+        if int(marketId) > 0:
+            stationIdCache[int(marketId)] = val
+            localMarketIdCache[val] = int(marketId)
     return val
 
 def getJsonRequest():
@@ -556,6 +561,7 @@ def getStarsNear(x, y, z, ly):
     return list
     
 def addMarketsNearSystem(list):
+    countAdded=0
     for baseSystemFull in list:
         baseSystemName, distanceLY, distanceLS, planetary = baseSystemFull.split(',')
         baseSystemName = baseSystemName.upper()
@@ -574,18 +580,21 @@ def addMarketsNearSystem(list):
             for nearStar in nearStars:
                 nearMarkets.extend(getMarketsForSystem(nearStar["ID"], distanceLS, planetary))
             print(len(nearMarkets), "near markets found!")
-            countAdded=0
+            count=0
             for nearMarket in nearMarkets:
                 marketName = nearMarket["MarketName"]
                 systemName = nearMarket["StarName"]
                 if getUserMarketId(systemName, marketName) < 0:
-                    countAdded+=1
-                    print (countAdded, "Adding market", marketName, systemName)
+                    count += 1
+                    print (count, "Adding market", marketName, systemName)
                     newId = addUserMarket(nearMarket)
-                    stationId = getStationId(marketName, systemName, newId)
-                    updateById.append(stationId)
+                    if newId >= 0:
+                        countAdded += 1
+                        stationId = getStationId(marketName, systemName, newId)
+                        updateById.append(stationId)
         else:
             print ("Star not found:", baseSystemName)
+    print ("Added", countAdded, "Markets to TCE DB")
 
 t1 = timeit.default_timer()
 
