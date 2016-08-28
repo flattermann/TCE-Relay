@@ -7,8 +7,8 @@ import os
 
 scriptDir = os.path.dirname(os.path.realpath(__file__))
 
-stations = json.load(open('c:/temp/stations.json'))
-systems = json.load(open('c:/temp/systems_populated.json'))
+stations = json.load(open(scriptDir+'/stations.json'))
+systems = json.load(open(scriptDir+'/systems_populated.json'))
 
 total=len(stations)
 print("There are",total,"stations")
