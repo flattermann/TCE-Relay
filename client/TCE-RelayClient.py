@@ -174,6 +174,7 @@ def getUserMarketIdMax():
 
 def getUserMarketId(systemName, stationName):
     global connUserMarkets
+    global localMarketCache
     if len(localMarketCache) == 0:
         c = connUserMarkets.cursor()
 #	print ("Checking market", systemId, stationName)
