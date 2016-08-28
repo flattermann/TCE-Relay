@@ -6,9 +6,11 @@ import timeit
 
 updateStars = True
 
+scriptDir = os.path.dirname(os.path.realpath(__file__))
+
 # You MUST have 64bit python for this or you'll get a MemoryError
-systems = json.load(open('c:/temp/systems.json', encoding="iso8859-1"))
-connStars = sqlite3.connect("c:/tce/db/TCE_Stars.db")
+systems = json.load(open(scriptDir+'/systems.json', encoding="iso8859-1"))
+connStars = sqlite3.connect(scriptDir+"/TCE_Stars.db")
 connStars.row_factory = sqlite3.Row
 
 c = connStars.cursor()
