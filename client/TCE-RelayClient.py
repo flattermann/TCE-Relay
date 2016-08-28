@@ -598,6 +598,9 @@ def addMarketsNearSystem(list):
 
 t1 = timeit.default_timer()
 
+if verbose:
+    print ("Client GUID is", getGuid())
+    
 # ut1=parseTceTimeToUnixtime(512309, "10:00:00")
 # ut2=parseTceTimeToUnixtime(512309, "10:00:00 AM")
 # ut3=parseTceTimeToUnixtime(512309, "10:00:00 PM")
