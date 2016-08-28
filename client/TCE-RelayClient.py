@@ -329,7 +329,7 @@ def getJsonRequest():
                     # print(marketName, starName, stationId, oldDateStr, oldTimeStr, t)
                     if fetchOlder:
                         t=0
-                        jsonData["knownMarkets"].append({"id":stationId, "t":t})
+                    jsonData["knownMarkets"].append({"id":stationId, "t":t})
                 # else:
                     # if verbose and not fromTce:
                         # print("Skipping market because of command line params:", marketName, starName, stationId)
