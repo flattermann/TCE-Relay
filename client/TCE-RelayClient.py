@@ -649,12 +649,26 @@ if args.iKnowTheRisks:
     print ("==========================================================================")
     print ("Enabling experimental features. I hope you made a backup first. Take care.")
     print ("==========================================================================")
-    if args.clearPrices:
+
+if args.clearPrices:
+    if not args.iKnowTheRisks:
+        print("Error: --clear-prices is EXPERIMENTAL, please set --i-know-the-risks if you really do")
+        exit(10)
+    else:
         clearPrices()
-    if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
+
+if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
+    if not args.iKnowTheRisks:
+        print("Error: --add-markets-near-system is EXPERIMENTAL, please set --i-know-the-risks if you really do")
+        exit(10)
+    else:
         updateById = []
         addMarketsNearSystem(addMarketsNearSystemList)
-    elif addMarketList != None and len(addMarketList) > 0:
+elif addMarketList != None and len(addMarketList) > 0:
+    if not args.iKnowTheRisks:
+        print("Error: --add-market is EXPERIMENTAL, please set --i-know-the-risks if you really do")
+        exit(10)
+    else:
         updateById = []
         addMarkets(addMarketList)
 
