@@ -381,6 +381,16 @@ def main():
                             
                             echoLog('')
 #                            echoLog('')
+
+                       # Handle commodity v3
+                        elif __json['$schemaRef'] == 'http://schemas.elite-markets.net/eddn/commodity/3' + ('/test' if (__debugEDDN == True) else ''):
+                            echoLog('FIXME: Received commodity v3 - not implemented')
+
+                        else:
+                            try:
+                                echoLog('Received unknown message: '+__json['$schemaRef'])
+                            except:
+                                pass
                         
                         del __converted
                 else:
