@@ -174,7 +174,7 @@ def getUserMarketIdMax():
     if (result != None):
         return result["id"]
     else:
-        return -1
+        return 0
 
 def getUserMarketId(systemName, stationName):
     global connUserMarkets
@@ -263,7 +263,10 @@ def showError(text):
     print ("ERROR:"+text)
     
 def getLocalMarketId(stationId):
-    return localMarketIdCache[int(stationId)]
+    try:
+        return localMarketIdCache[int(stationId)]
+    except KeyError:
+        return -1
     
 def getStationId(marketName, starName, marketId=-1):
     global connTceRelayClient
@@ -597,7 +600,7 @@ def addMarketsNearSystem(list):
                     count += 1
                     print (count, "Adding market", marketName, systemName)
                     newId = addUserMarket(nearMarket)
-                    if newId >= 0:
+                    if newId > 0:
                         countAdded += 1
                         stationId = getStationId(marketName, systemName, newId)
                         updateById.append(stationId)
