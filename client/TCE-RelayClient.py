@@ -47,7 +47,7 @@ import re
 import locale
 import traceback
 
-tceRelayVersion = "0.3.4-beta"
+tceRelayVersion = "0.3.5-beta"
 apiVersion = 2
 
 locale.setlocale(locale.LC_ALL, '')
