@@ -401,6 +401,14 @@ def getJsonRequestForPrices():
     t2 = timeit.default_timer()
     if not fromTce:
         print ("Requesting data for",len(jsonData["knownMarkets"]),"markets")
+        if len(jsonData["knownMarkets"]) > 2500:
+            print ("-------------------------------------------------------------------------------")
+            print ("WARNING: You've requested A LOT of markets!")
+            print ("         The server will probably not answer them all for performance reasons.")
+            print ("         And TCE is also pretty slow now...")
+            print ("         I'd recommend not using more than 1000 markets in TCE.")
+            print ("-------------------------------------------------------------------------------")
+            
         print ("getJsonRequestForPrices took",(t2-t1),"seconds")
 
     return jsonData
