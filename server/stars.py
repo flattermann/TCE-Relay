@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timedelta
 import time
 import config
+import types
 
 stars  = Blueprint('stars', __name__)
 db = MySQLDatabase(config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
@@ -60,28 +61,22 @@ def show():
         
     clientVersion=jsonData["clientVersion"]
     guid=jsonData["guid"]
+    reqStars = jsonData["reqStars"]
 
     list = {}
     starData = {}
     countPrices = 0
 
-    # for market in knownMarkets[:config.marketRequestLimit]:
-        # curStationPrices = []
-        # marketDate=0
-        # for price in CommodityPrice.select().where(CommodityPrice.stationId == market["id"], CommodityPrice.collectedAt > collectedAtMin, CommodityPrice.tradegoodId <= maxTradegoodId):
-            # # Force same date on all goods
-            # if marketDate==0:
-                # marketDate=price.collectedAt
-                # if marketDate <= market["t"]:
-                    # break
-            # curStationPrices.append(
-                # {"tgId":price.tradegoodId, "supply":price.supply, "buyPrice":price.buyPrice, "sellPrice":price.sellPrice, "collectedAt":marketDate} 
-            # )
-            # countPrices += 1
-        # if len(curStationPrices)>0:
-            # priceData[market["id"]]=curStationPrices
-        # if config.marketResponseLimit > 0 and len(priceData) > config.marketResponseLimit:
-            # break
+    for reqStarItem in reqStars:
+        if type(reqStarItem) == types.ListType:
+            # RequestType [start, end]
+            reqStarBegin, reqStarEnd = reqStarItem
+        else:
+            # RequestType single id
+            reqStarBegin = reqStarEnd = reqStarItem
+        stars = Star.select().where(Star.id >= reqStarBegin, Star.id <= reqStarEnd)
+        for star in stars:
+            starData[star.id] = star.starClass
 
     t2 = time.clock()
 
