@@ -77,6 +77,16 @@ def updateStarClass(starId, starClass):
     c = connStars.cursor()
     c.execute("UPDATE public_Stars SET Class=? WHERE ID=?", (starClass, starId))
 
+# def updateStarState(starId):
+    # global connStars
+    # c = connStars.cursor()
+    # c.execute("UPDATE public_Stars SET State=0 WHERE ID=?", (starId, ))
+
+# def updateStarNoteToEmpty(starId):
+    # global connStars
+    # c = connStars.cursor()
+    # c.execute("UPDATE public_Stars SET Note='' WHERE ID=?", (starId, ))
+
 def mapStarClass(starClass):
     global connResources
     c = connResources.cursor()
@@ -117,11 +127,16 @@ for star in stars:
         countCoordsDiff += 1
         print ("Different coords for", starId, star["X"], system["x"], star["Y"], system["y"], star["Z"], system["z"])
         different=True
-    if not mainStar is None and mainStarClass != star["Class"]:
-        countClassDiff += 1
-        print ("Different StarClass for", starId, system["name"], star["Class"], mainStarClass)
-        if updateStars:
-            updateStarClass(starId, mainStarClass)
+    if mainStarClass != None:
+        if mainStarClass != star["Class"]:
+            countClassDiff += 1
+            print ("Different StarClass for", starId, system["name"], star["Class"], mainStarClass)
+            if updateStars:
+                updateStarClass(starId, mainStarClass)
+        # if star["State"] == None:
+            # updateStarState(starId)
+        # if star["Note"] == None:
+            # updateStarNoteToEmpty(starId)
     if mainStar is None and len(bodies)>0:
         print ("No mainstar found for", starId, system["name"], len(bodies))
     if updateStars and different:
