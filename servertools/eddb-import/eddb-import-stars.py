@@ -69,7 +69,6 @@ def getMainStarBySystemId(systemId):
     return None
 
 db.connect()
-db.create_tables([Star], safe=True)
 db.autocommit(False)
 c = db.cursor()
 
@@ -83,7 +82,7 @@ for systemId in bodies:
         mainStar = getMainStarBySystemId(systemId)
         if mainStar != None:
             mainStarClass = mapStarClass(mainStar["spectral_class"])
-            c.execute("INSERT INTO Star (id, x, y, z, spectralClass) values (?, ?, ?, ?)", (systemId, mainStar["x"], mainStar["y"], mainStar["z"], mainStarClass)
+            c.execute("INSERT INTO Star (id, x, y, z, spectralClass) values (?, ?, ?, ?)", (systemId, mainStar["x"], mainStar["y"], mainStar["z"], mainStarClass))
 
 db.commit()
 
