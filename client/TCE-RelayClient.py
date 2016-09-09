@@ -545,7 +545,8 @@ def processJsonResponseForStars(jsonResponse):
 def updateStarClass(starId, starClass):
     global connStars
     c = connStars.cursor()
-    c.execute("UPDATE public_Stars SET Class=? WHERE ID=?", (starClass, starId))
+    if not args.dryRun:
+        c.execute("UPDATE public_Stars SET Class=? WHERE ID=?", (starClass, starId))
 
 # Update one market
 def updateTcePriceData(stationId, curPriceData):
