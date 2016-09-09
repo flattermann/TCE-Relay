@@ -2,6 +2,7 @@ from flask import Flask
 from index import index
 #from markets import markets
 from prices import prices
+from stars import stars
 import logging
 
 app = Flask(__name__)
@@ -11,6 +12,7 @@ app.debug = True
 
 app.register_blueprint(index)
 app.register_blueprint(prices)
+app.register_blueprint(stars)
 
 app.logger_name = "flask.app"
 
