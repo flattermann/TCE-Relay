@@ -27,6 +27,7 @@ class AccessStars(peewee.Model):
     guid = peewee.CharField(index=True)
     clientVersion = peewee.CharField(index=True)
     apiVersion = peewee.IntegerField(index=True)
+    reqStarsListSize = peewee.IntegerField()
     sentStars = peewee.IntegerField()
     processTime = peewee.DoubleField()
 
@@ -85,7 +86,7 @@ def show():
     list["processTime"] = processTime
 
     clientIp = request.access_route[0]
-    access = AccessStars(at=datetime.utcnow(), ip=clientIp, guid=guid, clientVersion=clientVersion, apiVersion=apiVersion, sentStars=len(starData), processTime=processTime)
+    access = AccessStars(at=datetime.utcnow(), ip=clientIp, guid=guid, clientVersion=clientVersion, apiVersion=apiVersion, reqStarsListSize=len(reqStars), sentStars=len(starData), processTime=processTime)
     access.save()
     
     return jsonify(list)
