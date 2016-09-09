@@ -51,7 +51,9 @@ def after_request(response):
 
 @index.route("/", methods=['GET'])
 def show():
-    ret = "<h1 style='color:blue'>TCE Relay for Elite Dangerous</h1><p>See <a href='https://forums.frontier.co.uk/showthread.php/223056-RELEASE-Trade-Computer-Extension-Mk-II'>https://forums.frontier.co.uk/showthread.php/223056-RELEASE-Trade-Computer-Extension-Mk-II</a></p>"
+    ret = "<h1 style='color:blue'>TCE Relay for Elite Dangerous</h1>"
+    ret += "<p>For TCE-Relay, see <a href='https://forums.frontier.co.uk/showthread.php/283797-TCE-Relay-a-helper-tool-for-TCE-Mk-II'>https://forums.frontier.co.uk/showthread.php/283797-TCE-Relay-a-helper-tool-for-TCE-Mk-II</a></p>"
+    ret += "<p>For TCE, see <a href='https://forums.frontier.co.uk/showthread.php/223056-RELEASE-Trade-Computer-Extension-Mk-II'>https://forums.frontier.co.uk/showthread.php/223056-RELEASE-Trade-Computer-Extension-Mk-II</a></p>"
     ret += "<p>You can find the client and server source code on GitHub: <a href='https://github.com/flattermann/TCE-Relay'>https://github.com/flattermann/TCE-Relay</a></p>"
 
     t1 = time.clock()
