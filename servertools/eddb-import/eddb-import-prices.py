@@ -145,7 +145,8 @@ if (len(list) > 0):
                 countUpdated += 1
                 c.execute("INSERT INTO commodityprice (stationId, tradegoodId, supply, buyPrice, sellPrice, demand, collectedAt) VALUES (%s, %s, %s, %s, %s, %s, %s)",
                     priceInQueue)
-    db.commit()
+
+db.commit()
 
 t2 = timeit.default_timer()
 print "Import took {}seconds".format(t2-t1)
