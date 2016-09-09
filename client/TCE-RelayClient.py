@@ -86,6 +86,8 @@ parser.add_argument('--version', '-v', action='version',
                     version=tceRelayVersion)
 parser.add_argument('--verbose', dest='verbose', action='store_const',
                     const=True, default=False, help='More debug output')
+parser.add_argument('--dry-run', dest='dryRun', action='store_const',
+                    const=True, default=False, help='Do not actually change anything - just simulate')
                     
 args = parser.parse_args()
 
@@ -217,12 +219,13 @@ def addUserMarket(tceDefaultMarket):
         nextId = getUserMarketIdNext()
         if not fromTce:
             print ("    Adding Market", nextId, tdm["ID"])
-        c.execute("INSERT INTO public_Markets ("
-            "ID, MarketName, StarID, StarName, SectorID, AllegianceID, PriEconomy, SecEconomy, DistanceStar, LastDate, LastTime, "
-            "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ) "
-            # New in TCE 1.4: Faction, FactionState, Government, Security, BodyName (all text)
-            "VALUES (?" + 24*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
-            0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0))
+        if not args.dryRun:
+            c.execute("INSERT INTO public_Markets ("
+                "ID, MarketName, StarID, StarName, SectorID, AllegianceID, PriEconomy, SecEconomy, DistanceStar, LastDate, LastTime, "
+                "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ) "
+                # New in TCE 1.4: Faction, FactionState, Government, Security, BodyName (all text)
+                "VALUES (?" + 24*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
+                0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0))
         return nextId
 
 def calcDistance(p1,p2):
@@ -449,7 +452,8 @@ def updateTcePriceData(stationId, curPriceData):
 def deletePricesForMarket(localMarketId):
     global connPrices
     c = connPrices.cursor()
-    c.execute("DELETE FROM public_MarketPrices WHERE MarketID=?", (localMarketId, ))
+    if not args.dryRun:
+        c.execute("DELETE FROM public_MarketPrices WHERE MarketID=?", (localMarketId, ))
 
 def parseTceTimeToUnixtime(dateInteger, timeString):
     if verbose:
@@ -509,7 +513,8 @@ def setLocalMarketLastDate(localMarketId, collectedAt):
     if verbose and not fromTce:
         print ("Updating LastDate for localMarketId", localMarketId, "to", collectedAt)
     newTceDate, newTceTime = parseUnixtimeToTceTime(collectedAt)
-    c.execute("UPDATE public_Markets set LastDate=?, LastTime=? WHERE id=?", (newTceDate, newTceTime, localMarketId))
+    if not args.dryRun:
+        c.execute("UPDATE public_Markets set LastDate=?, LastTime=? WHERE id=?", (newTceDate, newTceTime, localMarketId))
     
 # Update a single price
 def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
@@ -517,10 +522,11 @@ def addTceSinglePrice(localMarketId, tradegoodId, supply, buyPrice, sellPrice):
     global connUserMarkets
     c = connPrices.cursor()
     if tradegoodId <= getMaxTradegoodId():
-        c.execute("INSERT INTO public_MarketPrices ("
-            "MarketID, GoodID, Buy, Sell, Stock) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (localMarketId, tradegoodId, buyPrice, sellPrice, supply))
+        if not args.dryRun:
+            c.execute("INSERT INTO public_MarketPrices ("
+                "MarketID, GoodID, Buy, Sell, Stock) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (localMarketId, tradegoodId, buyPrice, sellPrice, supply))
         return True
     else:
         print ("Did not add price to DB because tradegoodId is out of range", tradegoodId)
@@ -632,8 +638,9 @@ def clearPrices():
     cP = connPrices.cursor()
     cUM = connUserMarkets.cursor()
     print("Removing all prices and setting LastDate=0 for all markets")
-    cP.execute("DELETE FROM Public_MarketPrices")
-    cUM.execute("UPDATE Public_Markets set LastDate=0")
+    if not args.dryRun:
+        cP.execute("DELETE FROM Public_MarketPrices")
+        cUM.execute("UPDATE Public_Markets set LastDate=0")
 
 t1 = timeit.default_timer()
 
@@ -652,6 +659,11 @@ if verbose:
 if args.iKnowTheRisks:
     print ("==========================================================================")
     print ("Enabling experimental features. I hope you made a backup first. Take care.")
+    print ("==========================================================================")
+
+if args.dryRun:
+    print ("==========================================================================")
+    print ("Running in DRY RUN mode, changes will not be written to the database.     ")
     print ("==========================================================================")
 
 if args.clearPrices:
