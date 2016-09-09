@@ -14,9 +14,6 @@ minApiVersion = 2
 
 class Star(peewee.Model):
     id = PrimaryKeyField()
-    x = peewee.IntegerField(null=True)
-    y = peewee.IntegerField(null=True)
-    z = peewee.IntegerField(null=True)
     starClass = peewee.IntegerField()
 
     class Meta:
