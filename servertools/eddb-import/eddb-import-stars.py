@@ -20,7 +20,7 @@ t1 = timeit.default_timer()
 db = MySQLdb.connect(db=config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
 
 # These are global
-systems = json.load(open(scriptDir+'/systems.json'))
+#systems = json.load(open(scriptDir+'/systems.json'))
 bodies = json.load(open(scriptDir+'/bodies.json'))
 
 connResources = sqlite3.connect(scriptDir+"/Resources.db")
@@ -51,7 +51,7 @@ def getBodiesBySystemId(systemId):
                 except KeyError:
                     bodiesCache[bodySystemId] = [body]
         t2 = timeit.default_timer()
-        print ("Created bodiesCache with", len(bodiesCache), "entries in", t2-t1, "seconds")
+        print "Created bodiesCache with {} entries in {} seconds.".format(len(bodiesCache), t2-t1)
     try:
         return bodiesCache[systemId]
     except KeyError:
@@ -68,25 +68,34 @@ def getMainStarBySystemId(systemId):
         return bodies[0]
     return None
 
-db.connect()
+def getMainStarClassBySystemId(systemId):
+    mainStar = getMainStarBySystemId(systemId)
+    if mainStar != None:
+        return mapStarClass(mainStar["spectral_class"])
+    else:
+        return None
+
 db.autocommit(False)
 c = db.cursor()
 
 # Read bodies from JSON
 getBodiesBySystemId(0)
 
-c.execute("DELETE FROM Star")
+c.execute("DELETE FROM star")
 
-for systemId in bodies:
+count = 0
+countImported = 0
+for systemId in bodiesCache:
+#    print systemId
+    count += 1
     if systemId <= MAX_SYSTEM_ID:
-        mainStar = getMainStarBySystemId(systemId)
-        if mainStar != None:
-            mainStarClass = mapStarClass(mainStar["spectral_class"])
-            c.execute("INSERT INTO Star (id, x, y, z, spectralClass) values (?, ?, ?, ?)", (systemId, mainStar["x"], mainStar["y"], mainStar["z"], mainStarClass))
+        mainStarClass = getMainStarClassBySystemId(systemId)
+        if mainStarClass != None:
+            countImported += 1
+            c.execute("INSERT INTO star (id, starClass) values (%s, %s)", (systemId, mainStarClass))
 
 db.commit()
 
 t2 = timeit.default_timer()
-print "Import took {}seconds".format(t2-t1)
-print "Updated {} prices".format(countUpdated)
-print missingCommodityMappings
+print "Import took {} seconds".format(t2-t1)
+print "Imported {}/{} stars".format(countImported, count)
