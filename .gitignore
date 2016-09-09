@@ -6,6 +6,7 @@ server/config.pyc
 servertools/*/config.pyc
 servertools/*/config.py
 servertools/eddb-import/*.csv
+servertools/eddb-import/*.json
 servertools/eddn-connect/*.log
 tcetools/*/*.db
 tcetools/*/*.json
