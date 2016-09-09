@@ -116,7 +116,9 @@ def getMyPath(filename=None):
     else:
         return os.path.join(datadir, filename)
 
-tceRelayUrl='http://tcerelay.flat09.de/prices'
+tceRelayUrl = 'http://tcerelay.flat09.de'
+tceRelayUrlPrices = tceRelayUrl + '/prices'
+tceRelayUrlStars = tceRelayUrl + '/stars'
 
 # These too
 connUserMarkets = sqlite3.connect(tcePath+"/db/TCE_RMarkets.db")
@@ -302,11 +304,45 @@ def getStationId(marketName, starName, marketId=-1):
             localMarketIdCache[val] = int(marketId)
     return val
 
-def getJsonRequest():
+def getJsonRequestDefault():
     showStatus("Preparing request")
+    jsonData = {}
+    jsonData["apiVersion"] = apiVersion
+    jsonData["clientVersion"] = tceRelayVersion
+    jsonData["guid"] = getGuid()
+    return jsonData
+
+def sendRequestDefault(jsonData, url):
+    showStatus("Sending request")
+    t1 = timeit.default_timer()
+    # print(jsonData)
+
+    if verbose:
+        print(jsonData)
+
+    additional_headers = {}
+    additional_headers['content-encoding'] = 'gzip'
+    jsonAsString = json.dumps(jsonData)
+    compressedJson = zlib.compress(jsonAsString.encode())
+
+    if not fromTce:
+        print ("Compressed JsonRequest from", len(jsonAsString), "to", len(compressedJson), "bytes")
+    r = requests.post(url, data=compressedJson, headers=additional_headers)
+
+    if not fromTce:
+        print(r.status_code)
+        print (r.headers)
+
+    jsonResponse=r.json()
+
+    t2 = timeit.default_timer()
+    if not fromTce:
+        print ("sendRequest took",(t2-t1),"seconds")
+    return jsonResponse
+
+def getJsonRequestForPrices():
     global connUserMarkets
     global maxAge
-    global guid
     
     t1 = timeit.default_timer()
 
@@ -314,12 +350,9 @@ def getJsonRequest():
 
     cUM.execute("SELECT * FROM public_Markets")
 
-    jsonData = {}
-    jsonData["apiVersion"] = apiVersion
-    jsonData["clientVersion"] = tceRelayVersion
+    jsonData = getJsonRequestDefault()
     jsonData["knownMarkets"] = []
     jsonData["maxAge"] = maxAge
-    jsonData["guid"] = getGuid()
     jsonData["maxTradegoodId"] = getMaxTradegoodId()
     
     count = 0
@@ -368,37 +401,20 @@ def getJsonRequest():
     t2 = timeit.default_timer()
     if not fromTce:
         print ("Requesting data for",len(jsonData["knownMarkets"]),"markets")
-        print ("getJsonRequest took",(t2-t1),"seconds")
+        print ("getJsonRequestForPrices took",(t2-t1),"seconds")
+
     return jsonData
 
-def sendRequest(jsonData):
-    showStatus("Sending request")
-    t1 = timeit.default_timer()
-    # print(jsonData)
 
-    additional_headers = {}
-    additional_headers['content-encoding'] = 'gzip'
-    jsonAsString = json.dumps(jsonData)
-    compressedJson = zlib.compress(jsonAsString.encode())
+def sendRequestForPrices(jsonData):
+    return sendRequestDefault(jsonData, tceRelayUrlPrices)
 
-    if not fromTce:
-        print ("Compressed JsonRequest from", len(jsonAsString), "to", len(compressedJson), "bytes")
-    r = requests.post(tceRelayUrl, data=compressedJson, headers=additional_headers)
-
-    if not fromTce:
-        print(r.status_code)
-        print (r.headers)
-
-    jsonResponse=r.json()
-
-    t2 = timeit.default_timer()
-    if not fromTce:
-        print ("sendRequest took",(t2-t1),"seconds")
-    return jsonResponse
-
-def processJsonResponse(jsonResponse):
+def processJsonResponseForPrices(jsonResponse):
     showStatus("Processing response")
     t1 = timeit.default_timer()
+    if verbose:
+        print(jsonResponse)
+
     if "error" in jsonResponse:
         showError(jsonResponse["error"])
         exit(4)
@@ -423,13 +439,106 @@ def processJsonResponse(jsonResponse):
             countPricesUpdated += updateTcePriceData(stationId, curPriceData)
     t2 = timeit.default_timer()
     if not fromTce:
-        print ("processJsonResponse took",(t2-t1),"seconds")
+        print ("processJsonResponseForPrices took",(t2-t1),"seconds")
         print ("Updated",countStationsUpdated,"stations with",countPricesUpdated,"prices")
     else:
         #text="Updated "+strcountStationsUpdated+" stations with "+countPricesUpdated+"prices"
         #showStatus(text)
         showStatus("Finished")
+
+def getJsonRequestForStars():
+    global connStars
+
+    t1 = timeit.default_timer()
+    c = connStars.cursor()
+    c.execute("SELECT id, Class FROM Public_Stars ORDER BY id")
+
+    jsonData = getJsonRequestDefault()
+
+    count = 0
+    countRequested = 0
+    stars = c.fetchall()
+    list = []
+
+    reqStarsStart = -1
+    reqStarsEnd = -1
+    prevId = -1
+
+    for star in stars:
+        count += 1
+        if fromTce and count % 1000 == 0:
+            showProgress(count, len(stars), "Preparing request")
+        if reqStarsStart >= 0:
+            # We are in a range of stars with class=NULL
+            if star["Class"] != None:
+                # Range end
+                reqStarsEnd = prevId
+                if reqStarsStart == reqStarsEnd:
+                    list.append(reqStarsStart)
+                else:
+                    list.append([reqStarsStart, reqStarsEnd])
+                reqStarsStart = -1
+            else:
+                countRequested += 1
+        else:
+            # We are not in a range
+            if star["Class"] == None:
+                reqStarsStart = star["ID"]
+                countRequested += 1
+
+        prevId = star["ID"]
+
+    if reqStarsStart >= 0:
+        list.append([reqStarsStart, prevId])
+
+    jsonData["reqStars"] = list
+
+    t2 = timeit.default_timer()
+    if not fromTce:
+        print ("Requesting data for",countRequested,"stars")
+        print ("getJsonRequestForStars took",(t2-t1),"seconds")
+    return jsonData
+
+def sendRequestForStars(jsonData):
+    return sendRequestDefault(jsonData, tceRelayUrlStars)
+
+def processJsonResponseForStars(jsonResponse):
+    showStatus("Processing response")
+    t1 = timeit.default_timer()
+    if verbose:
+        print(jsonResponse)
+
+    if "error" in jsonResponse:
+        showError(jsonResponse["error"])
+        exit(4)
+    if not fromTce:
+        print("ServerProcessTime", jsonResponse["processTime"])
+    starData=jsonResponse["starData"]
+
+    if not fromTce:
+        print("Got updated spectral classes for",len(starData),"stars")
     
+    countStars = 0
+    for starId in starData:
+        countStars += 1
+        if fromTce:
+            showProgress(countStars, len(starData), "Updating stars")
+        updateStarClass(starId, starData[starId])
+
+    t2 = timeit.default_timer()
+    if not fromTce:
+        print ("processJsonResponseForStars took",(t2-t1),"seconds")
+        print ("Updated spectral class of",countStars,"stars")
+    else:
+        #text="Updated "+strcountStationsUpdated+" stations with "+countPricesUpdated+"prices"
+        #showStatus(text)
+        showStatus("Finished")
+
+def updateStarClass(starId, starClass):
+    global connStars
+    c = connStars.cursor()
+    c.execute("UPDATE public_Stars SET Class=? WHERE ID=?", (starClass, starId))
+
 # Update one market
 def updateTcePriceData(stationId, curPriceData):
     localMarketId = getLocalMarketId(stationId)
@@ -694,28 +803,50 @@ if args.listMarketsBySystenName != None:
     
 if not args.offlineMode:
     try:
-        jsonData = getJsonRequest()
+        jsonData = getJsonRequestForPrices()
     except:
         print(traceback.format_exc())
         showError("Unable to create request!")
         exit(1)
 
     try:
-        jsonResponse = sendRequest(jsonData)
+        jsonResponse = sendRequestForPrices(jsonData)
     except:
         print(traceback.format_exc())
         showError("Server unreachable!")
         exit(2)
 
     try:
-        processJsonResponse(jsonResponse)
+        processJsonResponseForPrices(jsonResponse)
     except:
         print(traceback.format_exc())
         showError("Unable to parse response!")
         exit(3)
-    
+
+    try:
+        jsonData = getJsonRequestForStars()
+    except:
+        print(traceback.format_exc())
+        showError("Unable to create request!")
+        exit(1)
+
+    try:
+        jsonResponse = sendRequestForStars(jsonData)
+    except:
+        print(traceback.format_exc())
+        showError("Server unreachable!")
+        exit(2)
+
+    try:
+        processJsonResponseForStars(jsonResponse)
+    except:
+        print(traceback.format_exc())
+        showError("Unable to parse response!")
+        exit(3)
+
 connUserMarkets.commit()
 connPrices.commit()
+connStars.commit()
 
 # Close DB connections
 connUserMarkets.close()
