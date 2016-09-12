@@ -851,6 +851,7 @@ if not args.offlineMode:
 connUserMarkets.commit()
 connPrices.commit()
 connStars.commit()
+connDefaultMarkets.commit()
 
 # Close DB connections
 connUserMarkets.close()
