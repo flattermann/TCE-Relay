@@ -84,10 +84,11 @@ def show():
     for reqItem in reqMask:
         starNo += 1
         if reqItem == "1":
-            star = Star.select().where(Star.id == starNo)
-            if star != None:
+            try:
+                star = Star.get(Star.id == starNo)
                 starData[star.id] = star.starClass
-
+            except DoesNotExist:
+                pass
     t2 = time.clock()
 
     processTime = (t2-t1)
