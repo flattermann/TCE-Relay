@@ -62,23 +62,11 @@ def show():
         
     clientVersion=jsonData["clientVersion"]
     guid=jsonData["guid"]
-    # reqStars = jsonData["reqStars"]
     reqMask = jsonData["reqMask"]
     
     list = {}
     starData = {}
     countPrices = 0
-
-    # for reqStarItem in reqStars:
-        # if type(reqStarItem) == types.ListType:
-            # # RequestType [start, end]
-            # reqStarBegin, reqStarEnd = reqStarItem
-        # else:
-            # # RequestType single id
-            # reqStarBegin = reqStarEnd = reqStarItem
-        # stars = Star.select().where(Star.id >= reqStarBegin, Star.id <= reqStarEnd)
-        # for star in stars:
-            # starData[star.id] = star.starClass
 
     allStars = Star.select()
     allStarsCacheById = {}

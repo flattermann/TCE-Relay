@@ -468,10 +468,7 @@ def getJsonRequestForStars():
     count = 0
     countRequested = 0
     stars = c.fetchall()
-    # list = []
 
-    # reqStarsStart = -1
-    # reqStarsEnd = -1
     prevId = 0
 
     reqMask = ""
@@ -482,23 +479,6 @@ def getJsonRequestForStars():
         count += 1
         if fromTce and count % 1000 == 0:
             showProgress(count, len(stars), "Preparing request")
-        # if reqStarsStart >= 0:
-            # # We are in a range of stars with class=NULL
-            # if star["Class"] != None:
-                # # Range end
-                # reqStarsEnd = prevId
-                # if reqStarsStart == reqStarsEnd:
-                    # list.append(reqStarsStart)
-                # else:
-                    # list.append([reqStarsStart, reqStarsEnd])
-                # reqStarsStart = -1
-            # else:
-                # countRequested += 1
-        # else:
-            # # We are not in a range
-            # if star["Class"] == None:
-                # reqStarsStart = star["ID"]
-                # countRequested += 1
 
         if star["Class"] != None:
             starChar = "0"
@@ -510,15 +490,8 @@ def getJsonRequestForStars():
 
         prevId = star["ID"]
 
-    # if reqStarsStart >= 0:
-        # list.append([reqStarsStart, prevId])
-
-    # jsonData["reqStars"] = list
     jsonData["reqMask"] = reqMask
 
-    # print (reqMask)
-    # compressed = zlib.compress(reqMask.encode())
-    # print ("Compressed reqMask from {} to {}".format(len(reqMask), len(compressed)))
     t2 = timeit.default_timer()
     if not fromTce:
         print ("Requesting data for",countRequested,"stars")
