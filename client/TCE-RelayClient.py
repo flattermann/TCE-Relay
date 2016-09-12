@@ -210,8 +210,9 @@ def getDefaultMarket(systemName, stationName):
     result = c.fetchone()
     return result
 
-def addUserMarket(tceDefaultMarket):
+def addUserMarket(tceDefaultMarket, removeFromDefaultMarkets=true):
     global connUserMarkets
+    global connDefaultMarkets
     tdm = tceDefaultMarket
     if getStationId(tdm["MarketName"], tdm["StarName"], -1) < 0:
         print ("Cannot add market", tdm["MarketName"], tdm["StarName"], "because I could not find its EDDB ID")
@@ -228,6 +229,9 @@ def addUserMarket(tceDefaultMarket):
                 # New in TCE 1.4: Faction, FactionState, Government, Security, BodyName (all text)
                 "VALUES (?" + 24*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
                 0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0))
+            cDM = connDefaultMarkets.cursor()
+            if removeFromDefaultMarkets:
+                cDM.execute("DELETE FROM public_Markets_UR where ID=?", (tdm["ID"], ))
         return nextId
 
 def calcDistance(p1,p2):
