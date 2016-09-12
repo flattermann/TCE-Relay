@@ -472,15 +472,13 @@ def getJsonRequestForStars():
 
     # reqStarsStart = -1
     # reqStarsEnd = -1
-    prevId = -1
+    prevId = 0
 
     reqMask = ""
 
     for star in stars:
         if star["ID"] > MAX_SYSTEM_ID:
             break
-        if prevId == -1:
-            prevId = star["ID"]
         count += 1
         if fromTce and count % 1000 == 0:
             showProgress(count, len(stars), "Preparing request")
