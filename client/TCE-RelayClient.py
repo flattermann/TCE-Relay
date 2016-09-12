@@ -210,7 +210,7 @@ def getDefaultMarket(systemName, stationName):
     result = c.fetchone()
     return result
 
-def addUserMarket(tceDefaultMarket, removeFromDefaultMarkets=true):
+def addUserMarket(tceDefaultMarket, removeFromDefaultMarkets=True):
     global connUserMarkets
     global connDefaultMarkets
     tdm = tceDefaultMarket
