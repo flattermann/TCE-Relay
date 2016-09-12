@@ -80,15 +80,20 @@ def show():
         # for star in stars:
             # starData[star.id] = star.starClass
 
+    allStars = Star.select().order_by(Star.id)
+    
     starNo = 0
+    countRequested = 0
     for reqItem in reqMask:
         starNo += 1
         if reqItem == "1":
-            try:
-                star = Star.get(Star.id == starNo)
-                starData[star.id] = star.starClass
-            except DoesNotExist:
-                pass
+            countRequested += 1
+            for star in allStars:
+                if star.id == starNo:
+                    starData[star.id] = star.starClass
+                elif star.id > starNo:
+                    break;
+
     t2 = time.clock()
 
     processTime = (t2-t1)
@@ -96,7 +101,7 @@ def show():
     list["processTime"] = processTime
 
     clientIp = request.access_route[0]
-    access = AccessStars(at=datetime.utcnow(), ip=clientIp, guid=guid, clientVersion=clientVersion, apiVersion=apiVersion, reqStarsListSize=len(reqStars), sentStars=len(starData), processTime=processTime)
+    access = AccessStars(at=datetime.utcnow(), ip=clientIp, guid=guid, clientVersion=clientVersion, apiVersion=apiVersion, reqStarsListSize=countRequested, sentStars=len(starData), processTime=processTime)
     access.save()
     
     return jsonify(list)
