@@ -80,19 +80,22 @@ def show():
         # for star in stars:
             # starData[star.id] = star.starClass
 
-    allStars = Star.select().order_by(Star.id)
+    allStars = Star.select()
+    allStarsCacheById = {}
     
+    for star in allStars:
+        allStarsCacheById[star.id] = star.starClass
+        
     starNo = 0
     countRequested = 0
     for reqItem in reqMask:
         starNo += 1
         if reqItem == "1":
             countRequested += 1
-            for star in allStars:
-                if star.id == starNo:
-                    starData[star.id] = star.starClass
-                elif star.id > starNo:
-                    break;
+            try:
+                starData[starNo] = allStarsCacheById[starNo]
+            except KeyError:
+                pass
 
     t2 = time.clock()
 
