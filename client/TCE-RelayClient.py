@@ -468,10 +468,10 @@ def getJsonRequestForStars():
     count = 0
     countRequested = 0
     stars = c.fetchall()
-    list = []
+    # list = []
 
-    reqStarsStart = -1
-    reqStarsEnd = -1
+    # reqStarsStart = -1
+    # reqStarsEnd = -1
     prevId = -1
 
     reqMask = ""
@@ -512,8 +512,8 @@ def getJsonRequestForStars():
 
         prevId = star["ID"]
 
-    if reqStarsStart >= 0:
-        list.append([reqStarsStart, prevId])
+    # if reqStarsStart >= 0:
+        # list.append([reqStarsStart, prevId])
 
     # jsonData["reqStars"] = list
     jsonData["reqMask"] = reqMask
