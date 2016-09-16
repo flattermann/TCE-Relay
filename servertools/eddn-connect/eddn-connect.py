@@ -347,6 +347,11 @@ def main():
                                     echoLog('        - Unixtime ' + str(unixtime))
                                 if stationId >= 0:
                                     with db.atomic():
+                                        # Delete all old prices of this station
+                                        deleteQuery = Price.delete().where(Price.stationId == stationId)
+                                        rowsDeleted = deleteQuery.execute()
+                                        if __verbose:
+                                            echoLog('    - Deleted old prices: ' + rowsDeleted)
                                         for __commodity in __json['message']['commodities']:
 #                                            echoLog('            - Name: ' + __commodity['name'])
 #                                                echoLog('                - Buy Price: ' + str(__commodity['buyPrice']))
