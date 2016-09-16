@@ -348,10 +348,9 @@ def main():
                                 if stationId >= 0:
                                     with db.atomic():
                                         # Delete all old prices of this station
-                                        deleteQuery = Price.delete().where(Price.stationId == stationId)
+                                        deleteQuery = CommodityPrice.delete().where(CommodityPrice.stationId == stationId)
                                         rowsDeleted = deleteQuery.execute()
-                                        if __verbose:
-                                            echoLog('    - Deleted old prices: ' + rowsDeleted)
+                                        echoLog('        - Deleted old prices: ' + str(rowsDeleted))
                                         for __commodity in __json['message']['commodities']:
 #                                            echoLog('            - Name: ' + __commodity['name'])
 #                                                echoLog('                - Buy Price: ' + str(__commodity['buyPrice']))
