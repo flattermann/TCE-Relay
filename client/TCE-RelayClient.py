@@ -217,6 +217,9 @@ def addUserMarket(tceDefaultMarket, removeFromDefaultMarkets=True):
     if getStationId(tdm["MarketName"], tdm["StarName"], -1) < 0:
         print ("Cannot add market", tdm["MarketName"], tdm["StarName"], "because I could not find its EDDB ID")
         return -1
+    elif tdm["Type"] <= 0:
+        print ("Cannot add market", tdm["MarketName"], tdm["StarName"], "because its station type is unknown")
+        return -1
     else:
         c = connUserMarkets.cursor()
         nextId = getUserMarketIdNext()
