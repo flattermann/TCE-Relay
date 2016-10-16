@@ -47,6 +47,7 @@ import re
 import locale
 import traceback
 import xml.etree.ElementTree
+from pathlib import Path
 
 tceRelayVersion = "0.4-beta"
 apiVersion = 3
@@ -123,6 +124,13 @@ def getMyPath(filename=None):
 tceRelayUrl = 'http://tcerelay.flat09.de'
 tceRelayUrlPrices = tceRelayUrl + '/prices'
 tceRelayUrlStars = tceRelayUrl + '/stars'
+
+if not Path(tcePath+"/db/Resources.db").is_file():
+    print("ERROR: Cannot find TCE's DB files in", tcePath)
+    print()
+    print("Maybe you need to specify --tce-path like:")
+    print("TCE-RelayClient.exe --tce-path D:\TCE")
+    exit(100)
 
 # These too
 connUserMarkets = sqlite3.connect(tcePath+"/db/TCE_RMarkets.db")
