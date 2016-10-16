@@ -49,7 +49,7 @@ import traceback
 import xml.etree.ElementTree
 from pathlib import Path
 
-tceRelayVersion = "0.4-beta"
+tceRelayVersion = "0.4.1-beta"
 apiVersion = 3
 tceBleedingEdgeVersion = [1, 4, 0]
 
