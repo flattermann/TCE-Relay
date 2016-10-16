@@ -27,13 +27,20 @@ connResources = sqlite3.connect(scriptDir+"/Resources.db")
 connResources.row_factory = sqlite3.Row
 
 bodiesCache = {}
+unmappedStarClasses = {}
 
 def mapStarClass(starClass):
     global connResources
+    global unmappedStarClasses
     c = connResources.cursor()
     c.execute("SELECT ID from public_StarTypes WHERE StarClass=?", (starClass,))
     result = c.fetchone()
     if result == None:
+        if starClass != None:
+            try:
+                unmappedStarClasses[starClass] += 1
+            except KeyError:
+                unmappedStarClasses[starClass] = 1
         return None
     else:
         return result["ID"]
@@ -99,3 +106,5 @@ db.commit()
 t2 = timeit.default_timer()
 print "Import took {} seconds".format(t2-t1)
 print "Imported {}/{} stars".format(countImported, count)
+
+print unmappedStarClasses
