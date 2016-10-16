@@ -48,7 +48,7 @@ import locale
 import traceback
 import xml.etree.ElementTree
 
-tceRelayVersion = "0.3.6-beta"
+tceRelayVersion = "0.4-beta"
 apiVersion = 3
 tceBleedingEdgeVersion = [1, 4, 0]
 
