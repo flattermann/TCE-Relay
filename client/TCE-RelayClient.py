@@ -126,7 +126,7 @@ tceRelayUrlPrices = tceRelayUrl + '/prices'
 tceRelayUrlStars = tceRelayUrl + '/stars'
 
 if not Path(tcePath+"/db/Resources.db").is_file():
-    print("ERROR: Cannot find TCE's DB files in", tcePath)
+    print("ERROR: Cannot find TCE in", tcePath)
     print()
     print("Maybe you need to specify --tce-path like:")
     print("TCE-RelayClient.exe --tce-path D:\TCE")
