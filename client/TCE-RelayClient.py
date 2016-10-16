@@ -164,9 +164,9 @@ def getTceVersion(raw=False):
         if verbose:
             print ("Found TCE-version:", tceVersionRaw)
     if tceVersionRaw == None:
-        tceVersionRaw = "1.3.9.1"
+        tceVersionRaw = "1.3.9"
         if verbose:
-            print ("Using default TCE-version", tceVersionRaw)
+            print ("Assuming TCE-version", tceVersionRaw)
     if raw:
         return tceVersionRaw
     else:
