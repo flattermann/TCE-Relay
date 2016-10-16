@@ -10,7 +10,7 @@ import config
 
 prices = Blueprint('prices', __name__)
 db = MySQLDatabase(config.mysql["db"], user=config.mysql["user"], passwd=config.mysql["pw"])
-minApiVersion = 2
+minApiVersion = 3
 
 class CommodityPrice(peewee.Model):
     id = PrimaryKeyField()
