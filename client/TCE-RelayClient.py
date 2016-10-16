@@ -147,6 +147,7 @@ stationIdCache = {}
 localMarketCache = {}
 
 maxTradegoodId = -1
+maxStarClassId = -1
 
 EMPTY_MAGIC = "#EMPTY"
 
@@ -162,6 +163,19 @@ def getMaxTradegoodId():
             if verbose:
                 print ("MaxTradegoodId is", maxTradegoodId)
     return maxTradegoodId
+
+def getMaxStarClassId():
+    global connResources
+    global maxStarClassId
+    if maxStarClassId <= 0:
+        c = connResources.cursor()
+        c.execute("SELECT max(ID) as maxId FROM public_StarTypes")
+        result = c.fetchone()
+        if result != None:
+            maxStarClassId = result["maxId"]
+            if verbose:
+                print ("MaxStarClassId is", maxStarClassId)
+    return maxStarClassId
 
 def getUserMarketIdNext():
     global connUserMarkets
@@ -533,10 +547,11 @@ def processJsonResponseForStars(jsonResponse):
     
     countStars = 0
     for starId in starData:
-        countStars += 1
         if fromTce:
             showProgress(countStars, len(starData), "Updating stars")
-        updateStarClass(starId, starData[starId])
+        success = updateStarClass(starId, starData[starId])
+        if success:
+            countStars += 1
 
     t2 = timeit.default_timer()
     if not fromTce:
@@ -550,8 +565,13 @@ def processJsonResponseForStars(jsonResponse):
 def updateStarClass(starId, starClass):
     global connStars
     c = connStars.cursor()
-    if not args.dryRun:
-        c.execute("UPDATE public_Stars SET Class=? WHERE ID=?", (starClass, starId))
+    if starClass <= getMaxStarClassId():
+        if not args.dryRun:
+            c.execute("UPDATE public_Stars SET Class=? WHERE ID=?", (starClass, starId))
+        return True
+    else:
+        print ("Did not update starclass in DB because it is out of range", starClass)
+        return False
 
 # Update one market
 def updateTcePriceData(stationId, curPriceData):
