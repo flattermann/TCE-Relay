@@ -49,7 +49,7 @@ import traceback
 import xml.etree.ElementTree
 
 tceRelayVersion = "0.3.6-beta"
-apiVersion = 2
+apiVersion = 3
 
 locale.setlocale(locale.LC_ALL, '')
 
