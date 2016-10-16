@@ -80,6 +80,8 @@ parser.add_argument('--add-markets-near-system', '-A', metavar='SYSTEMNAME,LY,LS
                     default=None, help='EXPERIMENTAL: Add markets near system SYSTEMNAME, LY=max distance, LS=max star distance, WITHPLANETARY=Y/N, e.g. -A "LTT 9810,50,1000,N" (overrides -i)')
 parser.add_argument('--clear-prices', dest='clearPrices', action='store_const',
                     const=True, default=False, help='EXPERIMENTAL: Clear all prices from DB')
+parser.add_argument('--remove-problematic', dest='removeProblematic', action='store_const',
+                    const=True, default=False, help='EXPERIMENTAL: Remove problematic markets (errors, duplicates...)')
 parser.add_argument('--offline', dest='offlineMode', action='store_const',
                     const=True, default=False, help='Offline mode (useful for -a)')
 parser.add_argument('--version', '-v', action='version',
@@ -145,6 +147,8 @@ stationIdCache = {}
 localMarketCache = {}
 
 maxTradegoodId = -1
+
+EMPTY_MAGIC = "#EMPTY"
 
 def getMaxTradegoodId():
     global connResources
@@ -219,6 +223,9 @@ def addUserMarket(tceDefaultMarket, removeFromDefaultMarkets=True):
         return -1
     elif tdm["Type"] <= 0:
         print ("Cannot add market", tdm["MarketName"], tdm["StarName"], "because its station type is unknown")
+        return -1
+    elif tdm["Allegiance"] <= 0:
+        print ("Cannot add market", tdm["MarketName"], tdm["StarName"], "because its allegiance is unknown")
         return -1
     else:
         c = connUserMarkets.cursor()
@@ -393,7 +400,7 @@ def getJsonRequestForPrices():
                     # if verbose and not fromTce:
                         # print("Skipping market because of command line params:", marketName, starName, stationId)
                     
-            else:
+            elif marketName != EMPTY_MAGIC:
                 if not fromTce:
                     print(marketName, starName, stationId, "ID not found!")
         # else:
@@ -748,15 +755,87 @@ def listMarketsBySystenName(list):
                 if localMarketId > 0:
                     print ("    localMarketId: {}, eddbStationId: {}".format(localMarketId, stationId))
 
-def clearPrices():
+def clearPrices(localMarketId = -1):
     global connPrices
     global connUserMarkets
     cP = connPrices.cursor()
     cUM = connUserMarkets.cursor()
-    print("Removing all prices and setting LastDate=0 for all markets")
+    if localMarketId <= 0:
+        print("Removing all prices and setting LastDate=0 for all markets")
+        if not args.dryRun:
+            cP.execute("DELETE FROM Public_MarketPrices")
+            cUM.execute("UPDATE Public_Markets set LastDate=0")
+    else:
+        if not args.dryRun:
+            cP.execute("DELETE FROM Public_MarketPrices where MarketID = ?", (localMarketId, ))
+            cUM.execute("UPDATE Public_Markets set LastDate=0 where ID = ?", (localMarketId, ))
+
+def removeDuplicates():
+    global connUserMarkets
+    c = connUserMarkets.cursor()
+    list = []
+    # Check same StarId and MarketName
+    c.execute("SELECT ID, MarketName, StarID from Public_Markets ORDER BY StarID, MarketName")
+    result = c.fetchall()
+    prevStarId = 0
+    prevMarketName = None
+    for market in result:
+        if market["StarID"] == 0:
+            continue
+        if market["MarketName"] == prevMarketName and market["StarID"] == prevStarId:
+            list.append(market)
+        prevMarketName = market["MarketName"]
+        prevStarId = market["StarID"]
+    print("Found", len(list), "duplicate markets")
+    for market in list:
+        deleteUserMarket(market["ID"])
+
+def removeProblematicMarkets():
+    global connUserMarkets
+    c = connUserMarkets.cursor()
+    list = []
+    # Check same StarId and MarketName
+    c.execute("SELECT ID, StarID, AllegianceID, MarketType from Public_Markets")
+    result = c.fetchall()
+    for market in result:
+        if market["StarID"] == 0:
+            continue
+        if market["AllegianceID"] <= 0:
+            list.append(market)
+        elif market["MarketType"] <= 0:
+            list.append(market)
+    print("Found", len(list), "other market problems")
+    for market in list:
+        deleteUserMarket(market["ID"])
+
+def removeProblematicPrices():
+    global connPrices
+    global connUserMarkets
+    c = connPrices.cursor()
+    cUM = connUserMarkets.cursor()
+    c.execute("SELECT MarketID from Public_MarketPrices GROUP BY MarketID")
+    result = c.fetchall()
+    list = []
+    for price in result:
+        localMarketId = price["MarketID"]
+        cUM.execute("SELECT ID from Public_Markets WHERE ID=?", (localMarketId,))
+        result = cUM.fetchone()
+        if result == None:
+            list.append(localMarketId)
+    print("Found", len(list), "price problems")
+    for market in list:
+        clearPrices(market)
+
+def deleteUserMarket(localMarketId):
+    global connUserMarkets
+    c = connUserMarkets.cursor()
+    print("Removing market", localMarketId)
     if not args.dryRun:
-        cP.execute("DELETE FROM Public_MarketPrices")
-        cUM.execute("UPDATE Public_Markets set LastDate=0")
+        c.execute("UPDATE Public_Markets SET MarketName = '"+EMPTY_MAGIC+"', StarID = 0, StarName = '', SectorID = 0, "
+                + "AllegianceID = 0, PriEconomy = 0, SecEconomy = 0, DistanceStar = 0, LastDate = 0, LastTime = '00:00:00', MarketType = 0, "
+                + "Refuel = 0, Repair = 0, Rearm = 0, Outfitting = 0, Shipyard = 0, Blackmarket = 0, Hangar = 0, RareID = 0, ShipyardID = 0, "
+                + "Notes = '', PosX = 0, PosY = 0, PosZ = 0 WHERE ID = ?", (localMarketId, ))
+        clearPrices(localMarketId)
 
 t1 = timeit.default_timer()
 
@@ -788,6 +867,15 @@ if args.clearPrices:
         exit(10)
     else:
         clearPrices()
+
+if args.removeProblematic:
+    if not args.iKnowTheRisks:
+        print("Error: --remove-problematic is EXPERIMENTAL, please set --i-know-the-risks if you really do")
+        exit(10)
+    else:
+        removeDuplicates()
+        removeProblematicMarkets()
+        removeProblematicPrices()
 
 if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
     if not args.iKnowTheRisks:
