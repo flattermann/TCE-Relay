@@ -50,6 +50,7 @@ import xml.etree.ElementTree
 
 tceRelayVersion = "0.3.6-beta"
 apiVersion = 3
+tceBleedingEdgeVersion = [1, 4, 0]
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -160,10 +161,12 @@ def getTceVersion(raw=False):
         e = xml.etree.ElementTree.parse(tcePath + '/TCE.config').getroot()
         settings = e.find("TCE_Settings")
         tceVersionRaw = settings.get("TCE_Version")
-        print ("Found TCE-version:", tceVersionRaw)
+        if verbose:
+            print ("Found TCE-version:", tceVersionRaw)
     if tceVersionRaw == None:
         tceVersionRaw = "1.3.9.1"
-        print ("Using default TCE-version", tceVersionRaw)
+        if verbose:
+            print ("Using default TCE-version", tceVersionRaw)
     if raw:
         return tceVersionRaw
     else:
@@ -177,6 +180,10 @@ def getTceVersion(raw=False):
 
 def isTceBeta():
     return "BETA" in getTceVersion(True)
+
+def isTceBleedingEdge():
+    global tceBleedingEdgeVersion
+    return getTceVersion() >= tceBleedingEdgeVersion
 
 def getMaxTradegoodId():
     global connResources
@@ -887,8 +894,11 @@ def deleteUserMarket(localMarketId):
 t1 = timeit.default_timer()
 
 if verbose:
+    print ("TCE-Version is", getTceVersion(), isTceBeta(), isTceBleedingEdge())
+
+if verbose:
     print ("Client GUID is", getGuid())
-    
+
 # ut1=parseTceTimeToUnixtime(512309, "10:00:00")
 # ut2=parseTceTimeToUnixtime(512309, "10:00:00 AM")
 # ut3=parseTceTimeToUnixtime(512309, "10:00:00 PM")
@@ -919,6 +929,9 @@ if args.removeProblematic:
     if not args.iKnowTheRisks:
         print("Error: --remove-problematic is EXPERIMENTAL, please set --i-know-the-risks if you really do")
         exit(10)
+    elif not isTceBleedingEdge():
+        print("Error: This feature requires a newer TCE version:", tceBleedingEdgeVersion)
+        exit(11)
     else:
         removeDuplicates()
         removeProblematicMarkets()
@@ -928,6 +941,9 @@ if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
     if not args.iKnowTheRisks:
         print("Error: --add-markets-near-system is EXPERIMENTAL, please set --i-know-the-risks if you really do")
         exit(10)
+    elif not isTceBleedingEdge():
+        print("Error: This feature requires a newer TCE version:", tceBleedingEdgeVersion)
+        exit(11)
     else:
         updateById = []
         addMarketsNearSystem(addMarketsNearSystemList)
@@ -935,6 +951,9 @@ elif addMarketList != None and len(addMarketList) > 0:
     if not args.iKnowTheRisks:
         print("Error: --add-market is EXPERIMENTAL, please set --i-know-the-risks if you really do")
         exit(10)
+    elif not isTceBleedingEdge():
+        print("Error: This feature requires a newer TCE version:", tceBleedingEdgeVersion)
+        exit(11)
     else:
         updateById = []
         addMarkets(addMarketList)
