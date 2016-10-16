@@ -428,7 +428,7 @@ def getJsonRequestForPrices():
     markets = cUM.fetchall()
     for market in markets:
         count += 1
-        if fromTce: # and count % 10 == 0:
+        if fromTce and (len(markets) < 100 or count % 10 == 0):
             showProgress(count, len(markets), "Preparing request")
         localMarketId=market["ID"]
         if updateByLocalId == None or localMarketId in updateByLocalId:
