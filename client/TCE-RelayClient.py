@@ -46,6 +46,7 @@ import uuid
 import re
 import locale
 import traceback
+import xml.etree.ElementTree
 
 tceRelayVersion = "0.3.6-beta"
 apiVersion = 2
@@ -148,8 +149,34 @@ localMarketCache = {}
 
 maxTradegoodId = -1
 maxStarClassId = -1
+tceVersionRaw = None
 
 EMPTY_MAGIC = "#EMPTY"
+
+def getTceVersion(raw=False):
+    global tcePath
+    global tceVersionRaw
+    if tceVersionRaw == None:
+        e = xml.etree.ElementTree.parse(tcePath + '/TCE.config').getroot()
+        settings = e.find("TCE_Settings")
+        tceVersionRaw = settings.get("TCE_Version")
+        print ("Found TCE-version:", tceVersionRaw)
+    if tceVersionRaw == None:
+        tceVersionRaw = "1.3.9.1"
+        print ("Using default TCE-version", tceVersionRaw)
+    if raw:
+        return tceVersionRaw
+    else:
+        splitted = tceVersionRaw.split(".")
+        for i in range(0, len(splitted)):
+            if i == len(splitted)-1:
+                # Remove Beta stuff from last element
+                splitted[i] = splitted[i].split(" ")[0]
+            splitted[i] = int(splitted[i])
+        return splitted
+
+def isTceBeta():
+    return "BETA" in getTceVersion(True)
 
 def getMaxTradegoodId():
     global connResources
