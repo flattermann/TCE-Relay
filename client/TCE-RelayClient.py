@@ -283,10 +283,9 @@ def addUserMarket(tceDefaultMarket, removeFromDefaultMarkets=True):
         if not args.dryRun:
             c.execute("INSERT INTO public_Markets ("
                 "ID, MarketName, StarID, StarName, SectorID, AllegianceID, PriEconomy, SecEconomy, DistanceStar, LastDate, LastTime, "
-                "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ) "
-                # New in TCE 1.4: Faction, FactionState, Government, Security, BodyName (all text)
-                "VALUES (?" + 24*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
-                0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0))
+                "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ, Faction, FactionState, Government, Security, BodyName) "
+                "VALUES (?" + 29*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
+                0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0, "", "", "", "", ""))
             cDM = connDefaultMarkets.cursor()
             if removeFromDefaultMarkets:
                 cDM.execute("DELETE FROM public_Markets_UR where ID=?", (tdm["ID"], ))
@@ -888,7 +887,8 @@ def deleteUserMarket(localMarketId):
         c.execute("UPDATE Public_Markets SET MarketName = '"+EMPTY_MAGIC+"', StarID = 0, StarName = '', SectorID = 0, "
                 + "AllegianceID = 0, PriEconomy = 0, SecEconomy = 0, DistanceStar = 0, LastDate = 0, LastTime = '00:00:00', MarketType = 0, "
                 + "Refuel = 0, Repair = 0, Rearm = 0, Outfitting = 0, Shipyard = 0, Blackmarket = 0, Hangar = 0, RareID = 0, ShipyardID = 0, "
-                + "Notes = '', PosX = 0, PosY = 0, PosZ = 0 WHERE ID = ?", (localMarketId, ))
+                + "Notes = '', PosX = 0, PosY = 0, PosZ = 0, Faction = '', FactionState = '', Government = '', Security = '', BodyName = '' "
+                + "WHERE ID = ?", (localMarketId, ))
         clearPrices(localMarketId)
 
 t1 = timeit.default_timer()
