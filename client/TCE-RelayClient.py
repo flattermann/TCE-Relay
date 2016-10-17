@@ -522,6 +522,7 @@ def processJsonResponseForPrices(jsonResponse):
         #text="Updated "+strcountStationsUpdated+" stations with "+countPricesUpdated+"prices"
         #showStatus(text)
         showStatus("Finished")
+    return countPricesUpdated
 
 def getJsonRequestForStars():
     global connStars
@@ -602,6 +603,7 @@ def processJsonResponseForStars(jsonResponse):
         #text="Updated "+strcountStationsUpdated+" stations with "+countPricesUpdated+"prices"
         #showStatus(text)
         showStatus("Finished")
+    return countStars
 
 def updateStarClass(starId, starClass):
     global connStars
@@ -969,8 +971,11 @@ elif addMarketList != None and len(addMarketList) > 0:
 if args.listMarketsBySystenName != None:
     args.offlineMode = True
     listMarketsBySystenName(args.listMarketsBySystenName)
-    
+
 if not args.offlineMode:
+    endMessage = ""
+    updatedPrices = 0
+    updatedStars = 0
     try:
         jsonData = getJsonRequestForPrices()
     except:
@@ -986,7 +991,7 @@ if not args.offlineMode:
         exit(2)
 
     try:
-        processJsonResponseForPrices(jsonResponse)
+        updatedPrices = processJsonResponseForPrices(jsonResponse)
     except:
         print(traceback.format_exc())
         showError("Unable to parse response!")
@@ -1007,11 +1012,14 @@ if not args.offlineMode:
         exit(2)
 
     try:
-        processJsonResponseForStars(jsonResponse)
+        updatedStars = processJsonResponseForStars(jsonResponse)
     except:
         print(traceback.format_exc())
         showError("Unable to parse response!")
         exit(3)
+
+    if fromTce:
+        showStatus("Updated {} prices and {} stars".format(updatedPrices, updatedStars))
 
 connUserMarkets.commit()
 connPrices.commit()
