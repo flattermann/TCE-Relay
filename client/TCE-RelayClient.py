@@ -973,7 +973,6 @@ if args.listMarketsBySystenName != None:
     listMarketsBySystenName(args.listMarketsBySystenName)
 
 if not args.offlineMode:
-    endMessage = ""
     updatedPrices = 0
     updatedStars = 0
     try:
