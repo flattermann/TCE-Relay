@@ -301,11 +301,27 @@ def main():
                             
                             __converted = True
                         
+
                         # Handle commodity v2
                         if __json['$schemaRef'] == 'http://schemas.elite-markets.net/eddn/commodity/2' + ('/test' if (__debugEDDN == True) else ''):
+                            echoLogJSON(__message)
+                            echoLog('Receiving commodity-v2 message...')
+                            echoLog('    - Converting to v3...')
+
+                            __json['$schemaRef'] = 'http://schemas.elite-markets.net/eddn/commodity/3' + ('/test' if (__debugEDDN == True) else '')
+
+                            for __commodity in __json['message']['commodities']:
+                                if 'supply' in __commodity:
+                                    # Rename supply to stock
+                                    __commodity["stock"] = __commodity["supply"]
+
+                            __converted = True
+
+                        # Handle commodity v3
+                        if __json['$schemaRef'] == 'http://schemas.elite-markets.net/eddn/commodity/3' + ('/test' if (__debugEDDN == True) else ''):
                             if __converted == False:
                                 echoLogJSON(__message)
-                                echoLog('Receiving commodity-v2 message...')
+                                echoLog('Receiving commodity-v3 message...')
                             
                             if __authorisedByDefault:
                                 __authorised = True
@@ -338,13 +354,17 @@ def main():
                                 try:
                                     timestamp = dateutil.parser.parse(__json['message']['timestamp'])
                                     unixtime = calendar.timegm(timestamp.timetuple())
+                                    if unixtime > time.time():
+                                        unixtime = time.time()
                                 except TypeError:
                                     unixtime = time.time()
 
                                 echoLog('        - Station ID: ' + str(stationId))
-                                if __verbose:
+                                try:
                                     echoLog('    - Uploader ID: ' + __json['header']['uploaderID'])
-                                    echoLog('        - Unixtime ' + str(unixtime))
+                                except:
+                                    pass
+                                echoLog('        - Unixtime ' + str(unixtime))
                                 if stationId >= 0:
                                     with db.atomic():
                                         # Delete all old prices of this station
@@ -352,15 +372,12 @@ def main():
                                         rowsDeleted = deleteQuery.execute()
                                         echoLog('        - Deleted old prices: ' + str(rowsDeleted))
                                         for __commodity in __json['message']['commodities']:
-#                                            echoLog('            - Name: ' + __commodity['name'])
-#                                                echoLog('                - Buy Price: ' + str(__commodity['buyPrice']))
-#                                            echoLog('                - Supply: ' + str(__commodity['supply']) 
-#                                                + ((' (' + __commodity['supplyLevel'] + ')') if 'supplyLevel' in __commodity else '')
-#                                            )
-#                                            echoLog('                - Sell Price: ' + str(__commodity['sellPrice']))
-#                                            echoLog('                - Demand: ' + str(__commodity['demand'])
-#                                                + ((' (' + __commodity['demandLevel'] + ')') if 'demandLevel' in __commodity else '')
-#                                            )
+                                            if __verbose:
+                                                echoLog('            - Name: ' + __commodity['name'])
+                                                echoLog('                - Buy Price: ' + str(__commodity['buyPrice']))
+                                                echoLog('                - Supply: ' + str(__commodity['stock']))
+                                                echoLog('                - Sell Price: ' + str(__commodity['sellPrice']))
+                                                echoLog('                - Demand: ' + str(__commodity['demand']))
                                             commodityName = __commodity['name'];
                                             commodityName = getFixedName(commodityName)
                                             tradegoodId=getTceTradegoodId(commodityName)
@@ -374,7 +391,7 @@ def main():
                                                         echoLog('                --> Creating entry')
                                                     else:
                                                         echoLog('                --> Updating entry')
-                                                price.supply = __commodity['supply']
+                                                price.supply = __commodity['stock']
                                                 price.buyPrice = __commodity['buyPrice']
                                                 price.sellPrice = __commodity['sellPrice']
                                                 price.demand = __commodity['demand']
