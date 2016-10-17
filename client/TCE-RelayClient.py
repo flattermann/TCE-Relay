@@ -1018,8 +1018,7 @@ if not args.offlineMode:
         showError("Unable to parse response!")
         exit(3)
 
-    if fromTce:
-        showStatus("Updated {} prices and {} stars".format(updatedPrices, updatedStars))
+    showStatus("Updated {} prices and {} stars".format(updatedPrices, updatedStars))
 
 connUserMarkets.commit()
 connPrices.commit()
