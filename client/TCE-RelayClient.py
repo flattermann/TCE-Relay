@@ -47,9 +47,11 @@ import re
 import locale
 import traceback
 import xml.etree.ElementTree
+from pathlib import Path
 
-tceRelayVersion = "0.3.6-beta"
+tceRelayVersion = "0.4.1-beta"
 apiVersion = 3
+tceBleedingEdgeVersion = [1, 4, 0]
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -123,6 +125,13 @@ tceRelayUrl = 'http://tcerelay.flat09.de'
 tceRelayUrlPrices = tceRelayUrl + '/prices'
 tceRelayUrlStars = tceRelayUrl + '/stars'
 
+if not Path(tcePath+"/db/Resources.db").is_file():
+    print("ERROR: Cannot find TCE in", tcePath)
+    print()
+    print("Maybe you need to specify --tce-path like:")
+    print("TCE-RelayClient.exe --tce-path D:\TCE")
+    exit(100)
+
 # These too
 connUserMarkets = sqlite3.connect(tcePath+"/db/TCE_RMarkets.db")
 connDefaultMarkets = sqlite3.connect(tcePath+"/db/TCE_UMarkets.db")
@@ -160,10 +169,12 @@ def getTceVersion(raw=False):
         e = xml.etree.ElementTree.parse(tcePath + '/TCE.config').getroot()
         settings = e.find("TCE_Settings")
         tceVersionRaw = settings.get("TCE_Version")
-        print ("Found TCE-version:", tceVersionRaw)
+        if verbose:
+            print ("Found TCE-version:", tceVersionRaw)
     if tceVersionRaw == None:
-        tceVersionRaw = "1.3.9.1"
-        print ("Using default TCE-version", tceVersionRaw)
+        tceVersionRaw = "1.3.9"
+        if verbose:
+            print ("Assuming TCE-version", tceVersionRaw)
     if raw:
         return tceVersionRaw
     else:
@@ -177,6 +188,10 @@ def getTceVersion(raw=False):
 
 def isTceBeta():
     return "BETA" in getTceVersion(True)
+
+def isTceBleedingEdge():
+    global tceBleedingEdgeVersion
+    return getTceVersion() >= tceBleedingEdgeVersion
 
 def getMaxTradegoodId():
     global connResources
@@ -276,10 +291,9 @@ def addUserMarket(tceDefaultMarket, removeFromDefaultMarkets=True):
         if not args.dryRun:
             c.execute("INSERT INTO public_Markets ("
                 "ID, MarketName, StarID, StarName, SectorID, AllegianceID, PriEconomy, SecEconomy, DistanceStar, LastDate, LastTime, "
-                "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ) "
-                # New in TCE 1.4: Faction, FactionState, Government, Security, BodyName (all text)
-                "VALUES (?" + 24*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
-                0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0))
+                "MarketType, Refuel, Repair, Rearm, Outfitting, Shipyard, Blackmarket, Hangar, RareID, ShipyardID, Notes, PosX, PosY, PosZ, Faction, FactionState, Government, Security, BodyName) "
+                "VALUES (?" + 29*", ?" + ")", (nextId, tdm["MarketName"], tdm["StarID"], tdm["StarName"], 0, tdm["Allegiance"], tdm["Eco1"], tdm["Eco2"], tdm["DistanceStar"], 
+                0, "00:00:00", tdm["Type"], tdm["Refuel"], tdm["Repair"], tdm["Rearm"], tdm["Outfitting"], tdm["Shipyard"], tdm["Blackmarket"], 0, 0, 0, "", 0, 0, 0, "", "", "", "", ""))
             cDM = connDefaultMarkets.cursor()
             if removeFromDefaultMarkets:
                 cDM.execute("DELETE FROM public_Markets_UR where ID=?", (tdm["ID"], ))
@@ -414,7 +428,7 @@ def getJsonRequestForPrices():
     markets = cUM.fetchall()
     for market in markets:
         count += 1
-        if fromTce: # and count % 10 == 0:
+        if fromTce and (len(markets) < 100 or count % 10 == 0):
             showProgress(count, len(markets), "Preparing request")
         localMarketId=market["ID"]
         if updateByLocalId == None or localMarketId in updateByLocalId:
@@ -881,14 +895,18 @@ def deleteUserMarket(localMarketId):
         c.execute("UPDATE Public_Markets SET MarketName = '"+EMPTY_MAGIC+"', StarID = 0, StarName = '', SectorID = 0, "
                 + "AllegianceID = 0, PriEconomy = 0, SecEconomy = 0, DistanceStar = 0, LastDate = 0, LastTime = '00:00:00', MarketType = 0, "
                 + "Refuel = 0, Repair = 0, Rearm = 0, Outfitting = 0, Shipyard = 0, Blackmarket = 0, Hangar = 0, RareID = 0, ShipyardID = 0, "
-                + "Notes = '', PosX = 0, PosY = 0, PosZ = 0 WHERE ID = ?", (localMarketId, ))
+                + "Notes = '', PosX = 0, PosY = 0, PosZ = 0, Faction = '', FactionState = '', Government = '', Security = '', BodyName = '' "
+                + "WHERE ID = ?", (localMarketId, ))
         clearPrices(localMarketId)
 
 t1 = timeit.default_timer()
 
 if verbose:
+    print ("TCE-Version is", getTceVersion(), isTceBeta(), isTceBleedingEdge())
+
+if verbose:
     print ("Client GUID is", getGuid())
-    
+
 # ut1=parseTceTimeToUnixtime(512309, "10:00:00")
 # ut2=parseTceTimeToUnixtime(512309, "10:00:00 AM")
 # ut3=parseTceTimeToUnixtime(512309, "10:00:00 PM")
@@ -919,6 +937,9 @@ if args.removeProblematic:
     if not args.iKnowTheRisks:
         print("Error: --remove-problematic is EXPERIMENTAL, please set --i-know-the-risks if you really do")
         exit(10)
+    elif not isTceBleedingEdge():
+        print("Error: This feature requires a newer TCE version:", tceBleedingEdgeVersion)
+        exit(11)
     else:
         removeDuplicates()
         removeProblematicMarkets()
@@ -928,6 +949,9 @@ if addMarketsNearSystemList != None and len(addMarketsNearSystemList) > 0:
     if not args.iKnowTheRisks:
         print("Error: --add-markets-near-system is EXPERIMENTAL, please set --i-know-the-risks if you really do")
         exit(10)
+    elif not isTceBleedingEdge():
+        print("Error: This feature requires a newer TCE version:", tceBleedingEdgeVersion)
+        exit(11)
     else:
         updateById = []
         addMarketsNearSystem(addMarketsNearSystemList)
@@ -935,6 +959,9 @@ elif addMarketList != None and len(addMarketList) > 0:
     if not args.iKnowTheRisks:
         print("Error: --add-market is EXPERIMENTAL, please set --i-know-the-risks if you really do")
         exit(10)
+    elif not isTceBleedingEdge():
+        print("Error: This feature requires a newer TCE version:", tceBleedingEdgeVersion)
+        exit(11)
     else:
         updateById = []
         addMarkets(addMarketList)

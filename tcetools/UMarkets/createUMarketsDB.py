@@ -116,7 +116,6 @@ for station in stations:
 	system_id=station["system_id"]
 	max_landing_pad_size=station["max_landing_pad_size"]
 	distance_to_star=station["distance_to_star"]
-	faction=station["faction"]
 	state=station["state"]
 	allegiance=station["allegiance"]
 	type_id=station["type_id"]
