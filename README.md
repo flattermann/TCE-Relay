@@ -1,3 +1,7 @@
+# THIS PROJECT HAS MOVED  
+The project can now be found here:  
+https://github.com/EDCD/TCE-Relay
+
 # TCE-Relay
 Updates prices in TCE from EDDB/EDDN
 
