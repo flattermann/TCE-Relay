@@ -1,3 +1,6 @@
+# New Repo Here: https://github.com/EDCD/TCE-Relay  
+This project was absorbed by EDCD.
+
 # TCE-Relay
 Updates prices in TCE from EDDB/EDDN
 
